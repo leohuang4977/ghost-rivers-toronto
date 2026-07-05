@@ -1,0 +1,41 @@
+# ─────────────────────────────────────────────────────────────
+# Ghost Rivers of Toronto — repo ignore rules
+# ─────────────────────────────────────────────────────────────
+
+# --- Node / Vite (site) ---
+node_modules/
+site/dist/
+site/.vite/
+*.local
+.env
+.env.*
+!.env.example
+
+# --- Python / pixi / conda (pipeline) ---
+.pixi/
+pipeline/.pixi/
+__pycache__/
+*.py[cod]
+.venv/
+.ipynb_checkpoints/
+
+# --- Vendored CLI binaries (fetched via scripts, never committed) ---
+pipeline/bin/*
+!pipeline/bin/.gitkeep
+
+# --- Data: keep the folder skeleton + docs, ignore all payloads ---
+# (raw downloads, intermediate files, and built tiles are large and/or
+#  license-restricted; they are reproduced from docs/DATA_SOURCES.md)
+pipeline/data/**
+!pipeline/data/**/
+!pipeline/data/**/.gitkeep
+!pipeline/data/raw/README.md
+
+# --- OS / editor cruft ---
+.DS_Store
+Thumbs.db
+desktop.ini
+.idea/
+.vscode/*
+!.vscode/extensions.json
+*.swp

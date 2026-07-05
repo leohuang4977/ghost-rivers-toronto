@@ -1,0 +1,25 @@
+:root {
+  color-scheme: dark;
+}
+
+html,
+body {
+  margin: 0;
+  height: 100%;
+  background: #0b0f14; /* near-black deep slate — the "dark ground" of the design */
+  font-family:
+    system-ui,
+    -apple-system,
+    "Segoe UI",
+    sans-serif;
+}
+
+#map {
+  position: absolute;
+  inset: 0;
+}
+
+/* Kill the focus outline on the WebGL canvas without hurting real focus rings. */
+.maplibregl-canvas:focus {
+  outline: none;
+}

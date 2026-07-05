@@ -1,0 +1,21 @@
+# Ghost Rivers of Toronto — pipeline configuration
+# No hard-coded paths in code; everything resolves from here. Paths are relative
+# to the pipeline/ directory.
+
+crs:
+  # Web map delivery CRS (MapLibre / PMTiles expect WGS84 lon/lat).
+  output: "EPSG:4326"
+  # Working CRS for metric operations (buffers, hillshade). UTM 17N covers
+  # Toronto; NAD83 / MTM zone 10 (EPSG:2019) is the common Ontario municipal CRS.
+  working: "EPSG:32617"
+
+paths:
+  raw: "data/raw"
+  interim: "data/interim"
+  processed: "data/processed"
+  # Built PMTiles are written here, then copied into the site's /public.
+  tiles_out: "data/processed/tiles"
+  site_public: "../site/public"
+
+# Filled in during Phase 1 as each source is cleaned and its schema is known.
+sources: {}

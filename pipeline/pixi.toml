@@ -1,0 +1,43 @@
+# ─────────────────────────────────────────────────────────────
+# Ghost Rivers of Toronto — offline GIS pipeline environment
+# ─────────────────────────────────────────────────────────────
+# Managed with pixi (https://pixi.sh): a single binary that resolves a
+# conda-forge environment into a committed lockfile (pixi.lock). That lockfile
+# is the reproducibility artifact for the "how I built this" case study — anyone
+# can recreate the exact toolchain with `pixi install`.
+#
+# Why conda-forge (not pip): geopandas/rasterio/gdal are painful to pip-install
+# on some platforms and trivial on conda-forge, which also ships a *prebuilt*
+# linux `tippecanoe` — so the whole geostack + vector tiler comes from one lock,
+# with no source builds.
+#
+# Platform is linux-64 only because this runs inside WSL2 (Ubuntu). tippecanoe
+# has no supported native-Windows build; see docs/TOOLCHAIN.md for the rationale.
+
+[project]
+name = "ghost-rivers-pipeline"
+version = "0.1.0"
+description = "Clean historical hydrography, build a hillshade, and tile everything to PMTiles."
+channels = ["conda-forge"]
+platforms = ["linux-64"]
+
+[dependencies]
+python = ">=3.11,<3.14"
+geopandas = "*"
+rasterio = "*"
+gdal = "*"
+shapely = "*"
+pyproj = "*"
+fiona = "*"
+numpy = "*"
+pyyaml = "*"
+# Vector tiler (conda-forge ships a prebuilt linux binary):
+tippecanoe = "*"
+
+[tasks]
+# Phase 1 fills these in, e.g.:
+#   clean   = "python -m ghost_rivers.clean"
+#   hillshade = "python -m ghost_rivers.hillshade"
+#   tiles   = "python -m ghost_rivers.tile"
+# For now, a smoke check that the toolchain resolved:
+versions = "python --version && gdalinfo --version && tippecanoe --version"
