@@ -65,10 +65,11 @@ Everything under `data/` is git-ignored except the folder skeleton and
 Everything is parameterized from `config.yaml`. Run the whole thing, or a step:
 
 ```bash
-pixi run all         # creeks + hillshade -> tiles  (the full build)
-pixi run creeks      # Step 1+2 only  -> data/processed/creeks_4326.geojson
-pixi run hillshade   # Step 3 only    -> data/processed/hillshade_3857.tif
-pixi run tiles       # Step 4 only    -> *.pmtiles + copies to ../site/public/data/
+pixi run all         # creeks + hillshade + city -> tiles  (the full build)
+pixi run creeks      # creek geometry + year + Garrison hero flag -> creeks_4326.geojson
+pixi run hillshade   # DTM mosaic -> hillshade_3857.tif
+pixi run city        # streets/parks/ravines/water -> data/interim/*.geojson
+pixi run tiles       # -> *.pmtiles + copies to ../site/public/data/
 ```
 
 Steps cache on their inputs (code + `config.yaml`) and outputs, so re-running
@@ -76,10 +77,11 @@ Steps cache on their inputs (code + `config.yaml`) and outputs, so re-running
 
 | Step | Module | Input | Output |
 | --- | --- | --- | --- |
-| 1+2 | `clean_creeks` | `LR_Toronto_Composite.gdb` (`BI_Lost_Rivers_20170705`) | `creeks_4326.geojson` (+ `year_last_seen`) |
-| 3 | `hillshade` | `data/raw/lidar_dtm/*.tif` | `hillshade_3857.tif` |
-| 4 | `tile` | the two above | `creeks.pmtiles`, `hillshade.pmtiles` → `site/public/data/` |
+| creeks | `clean_creeks` | `LR_Toronto_Composite.gdb` (`BI_Lost_Rivers_20170705`) | `creeks_4326.geojson` (+ `year_last_seen`, `hero`) |
+| hillshade | `hillshade` | `data/raw/lidar_dtm/*.tif` | `hillshade_3857.tif` |
+| city | `city_layers` | Centreline, Green Spaces, Ravine + the hillshade (water) | `streets/parks/ravines/water.geojson` |
+| tiles | `tile` | the above | `creeks.pmtiles`, `hillshade.pmtiles`, `city.pmtiles` → `site/public/data/` |
 
-The two `.pmtiles` under `site/public/data/` are the only artifacts the site loads.
+The three `.pmtiles` under `site/public/data/` are the only artifacts the site loads.
 
 Later phases: georeference the historical map rasters and add them as a crossfade layer.

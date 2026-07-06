@@ -1,27 +1,18 @@
 // ─────────────────────────────────────────────────────────────────────────────
-// Ghost Rivers — Phase 2.5 cinematic still: tuning knobs
+// Ghost Rivers — Phase 2.6 layered scene: tuning knobs
 // ─────────────────────────────────────────────────────────────────────────────
-// Change a value, save, and the dev server hot-reloads. The design intent:
-// a moody nocturnal frame where Garrison Creek is the glowing protagonist over a
-// dark, cool, hillshaded downtown — not a data export of the DTM rectangle.
+// The scene, bottom → top: dark ground → lake → (quiet) hillshade → parks → ravines
+// → street grid → the other creeks → Garrison (the glowing hero). Everything except
+// Garrison is deliberately quiet. Change a value, save, dev server hot-reloads.
 //
-//   • camera            — the framing (tight on Garrison; nudge center/zoom/bearing)
-//   • darkBaseColor     — the ground (deep cool blue-black)
-//   • vignette          — radial edge darkening; kills the "floating rectangle" feel
-//   • hillshade         — how much terrain reads + its tone (kept dark, cool, moody)
-//   • creek.hero / rest — Garrison (bright, wide, hot core) vs the supporting network
-//
-// Terrain SHAPE + smoothness are PIPELINE knobs (pipeline/config.yaml): `dtm.target_res_m`
-// (6 m area-average — coarser washes out buildings), `hillshade.z_factor` (2.5),
-// `hillshade.azimuth`. Re-run `pixi run tiles` after changing those.
-// Hero vs rest selection is also a pipeline knob: `creeks.hero_seed_lonlat`.
+// Terrain SHAPE/smoothness + hero selection are PIPELINE knobs (pipeline/config.yaml):
+// `dtm.target_res_m` (8 m), `hillshade.z_factor` (1.8), `creeks.hero_seed_lonlat`,
+// and the street-class whitelist. Re-run `pixi run tiles` after changing those.
 
 export type LonLat = [number, number];
 
 export const CONFIG = {
-  // ── Framing ──────────────────────────────────────────────────────────────────
-  // Tight on the Garrison corridor (Trinity Bellwoods → the lake) so terrain fills
-  // the viewport and the hard DTM edges leave the frame. Nudge these to taste.
+  // ── Framing (keep the tight Garrison corridor) ───────────────────────────────
   camera: {
     center: [-79.412, 43.644] as LonLat,
     zoom: 14.4,
@@ -37,22 +28,27 @@ export const CONFIG = {
     innerStop: 38, // % radius that stays clear before the darkening ramps in
   },
 
-  // ── Hillshade ────────────────────────────────────────────────────────────────
-  // Low opacity over the cool base = cool-tinted, deep shadows; raised contrast =
-  // more tonal range so buried valleys read without it becoming a topo map.
+  // ── Terrain: the QUIETEST thing in the frame — dark, soft, low-contrast ──────
   hillshade: {
-    opacity: 0.42,
+    opacity: 0.3,
     brightnessMin: 0.0,
-    brightnessMax: 0.85, // let ridge highlights breathe a little
-    contrast: 0.4, // deepen valley shadows + separate the tones
-    saturation: -0.2, // kill residual colour so the tint comes only from the base
+    brightnessMax: 0.66, // cap highlights so it never becomes a pale sheet (but valleys still read)
+    contrast: 0.12, // low contrast = soft background texture, not a topo readout
+    saturation: -0.2,
   },
 
-  // ── The glowing creeks (light in the valleys), blue-black + cyan-white palette ─
-  // Layered lines: soft wide bloom (halo) → mid → thin bright core.
+  // ── City context (all quiet, under the creek glow) ───────────────────────────
+  city: {
+    water: { color: "#06142a", opacity: 0.9 }, // dark navy lake, subtly distinct from ground
+    parks: { color: "#1b2a1e", opacity: 0.38 }, // muted green-gray
+    ravines: { color: "#153028", opacity: 0.34 }, // slightly teal, a touch distinct
+    streets: { color: "#38465a", width: 0.7, opacity: 0.32 }, // faint cool-gray ghost lines
+  },
+
+  // ── The glowing creeks, on top. blue-black + cyan-white palette ──────────────
   creek: {
-    intensity: 1.0, // master multiplier on all glow widths + opacities
-    refZoom: 14.4, // widths below are px at this zoom, then scale with zoom
+    intensity: 1.0,
+    refZoom: 14.4,
     // HERO = Garrison: brighter, wider, hot near-white core.
     hero: {
       halo: { color: "#1f8fce", width: 30, blur: 26, opacity: 0.5 },

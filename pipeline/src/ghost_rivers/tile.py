@@ -67,6 +67,22 @@ def build_hillshade(cfg, interim, processed, minz, maxz) -> str:
     return out
 
 
+def build_city(cfg, interim, processed, minz, maxz) -> str:
+    """Bundle streets/parks/ravines/water into one multi-layer city.pmtiles."""
+    out = os.path.join(processed, "city.pmtiles")
+    inputs = []
+    for name in ("streets", "parks", "ravines", "water"):
+        p = os.path.join(interim, f"{name}.geojson")
+        if os.path.exists(p):
+            inputs += ["-L", f"{name}:{p}"]
+    run(["tippecanoe", "-o", out, "--force",
+         "-Z", minz, "-z", maxz,
+         "--drop-densest-as-needed", "--extend-zooms-if-still-dropping",
+         "--no-simplification-of-shared-nodes",
+         *inputs])
+    return out
+
+
 def main() -> None:
     cfg = CONFIG
     processed = ensure_dir(resolve(cfg["paths"]["processed"]))
@@ -80,9 +96,12 @@ def main() -> None:
     print("[4] tiling hillshade -> PMTiles")
     hs = build_hillshade(cfg, interim, processed,
                          cfg["tiles"]["hillshade_minzoom"], cfg["tiles"]["hillshade_maxzoom"])
+    print("[4] tiling city context -> PMTiles")
+    city = build_city(cfg, interim, processed,
+                      cfg["tiles"]["city_minzoom"], cfg["tiles"]["city_maxzoom"])
 
     print("\n[4] verifying + staging into site/public/data/")
-    for f in (creeks, hs):
+    for f in (creeks, hs, city):
         dst = os.path.join(pub, os.path.basename(f))
         # copyfile (not copy2): the Windows drvfs mount rejects copystat's utime,
         # and we only need the bytes staged for the static site.

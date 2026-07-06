@@ -36,18 +36,44 @@ dtm:
   # nodata during warp (gdalwarp masks per-source) and write one clean value out.
   out_nodata: -9999.0
   # The "DTM" still carries building-removal pads / rail cuts / block edges that read
-  # as urban clutter and bury the ravine story. Area-averaging 0.5 m -> a coarser grid
-  # washes out those ~10-40 m features while keeping the 100 m+ buried valleys.
-  # 6 m suppresses the fine urban grid further while broad buried valleys survive.
-  target_res_m: 6.0
+  # as urban clutter. Now that streets + parks carry the "city" story, the terrain is
+  # just quiet background texture, so we smooth HARD (8 m area-average) to dissolve the
+  # urban grid entirely; only broad valleys + surviving ravines should remain.
+  target_res_m: 8.0
   resampling: "average"      # area-average smoothing (NOT bilinear) to suppress clutter
 
 hillshade:
-  z_factor: 2.5              # vertical drama so the shallow buried valleys read
+  z_factor: 1.8              # gentle relief — soft, low-contrast background, not a topo readout
   multidirectional: false    # single low sun = sculptural shadows, moodier than flat multi-dir
   azimuth: 315               # NW light
   altitude: 45
   margin_m: 300              # buffer the study bbox before hillshading to avoid edge seams
+
+# ── City context layers (streets / parks / ravines / water) ──────────────────
+city:
+  # Toronto Centreline (streets). Whitelist the road classes; drop trails, rivers,
+  # rail, hydro, shoreline, walkways so it's just the street grid.
+  centreline: "data/raw/city_open_data/centreline/Centreline - Version 2 - 4326.geojson"
+  street_classes:
+    - "Local"
+    - "Collector"
+    - "Collector Ramp"
+    - "Major Arterial"
+    - "Major Arterial Ramp"
+    - "Minor Arterial"
+    - "Minor Arterial Ramp"
+    - "Expressway"
+    - "Expressway Ramp"
+    - "Other Ramp"
+    - "Laneway"
+    - "Access Road"
+    - "Busway"
+  green_spaces: "data/raw/city_open_data/green_spaces/Green Spaces - 4326.geojson"
+  ravine: "data/raw/city_open_data/ravine/RAVINE_BYLAW_WGS84.shp"
+  # Lake Ontario is derived from the DTM's nodata (lidar returns nothing over water),
+  # so the water edge matches the hillshade edge exactly. Keep only big polygons.
+  water_from_hillshade: "data/processed/hillshade_3857.tif"
+  water_min_area_m2: 50000
 
 # ── Tiling ───────────────────────────────────────────────────────────────────
 tiles:
@@ -55,6 +81,8 @@ tiles:
   creeks_maxzoom: 16
   hillshade_minzoom: 10
   hillshade_maxzoom: 16
+  city_minzoom: 11
+  city_maxzoom: 16
 
 paths:
   interim:          "data/interim"
