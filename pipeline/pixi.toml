@@ -14,7 +14,7 @@
 # Platform is linux-64 only because this runs inside WSL2 (Ubuntu). tippecanoe
 # has no supported native-Windows build; see docs/TOOLCHAIN.md for the rationale.
 
-[project]
+[workspace]
 name = "ghost-rivers-pipeline"
 version = "0.1.0"
 description = "Clean historical hydrography, build a hillshade, and tile everything to PMTiles."
@@ -34,10 +34,30 @@ pyyaml = "*"
 # Vector tiler (conda-forge ships a prebuilt linux binary):
 tippecanoe = "*"
 
+# ── Phase 1 pipeline — run order: creeks + hillshade -> tiles (or just `all`) ──
 [tasks]
-# Phase 1 fills these in, e.g.:
-#   clean   = "python -m ghost_rivers.clean"
-#   hillshade = "python -m ghost_rivers.hillshade"
-#   tiles   = "python -m ghost_rivers.tile"
-# For now, a smoke check that the toolchain resolved:
 versions = "python --version && gdalinfo --version && tippecanoe --version"
+
+# inputs/outputs let pixi skip a step when its code + config are unchanged and its
+# output already exists, so `pixi run all` doesn't redo the expensive DTM mosaic.
+[tasks.creeks]
+cmd = "python -m ghost_rivers.clean_creeks"    # Step 1+2: geometry + year
+env = { PYTHONPATH = "src" }
+inputs = ["src/ghost_rivers/clean_creeks.py", "src/ghost_rivers/config.py", "config.yaml"]
+outputs = ["data/processed/creeks_4326.geojson"]
+
+[tasks.hillshade]
+cmd = "python -m ghost_rivers.hillshade"        # Step 3: DTM mosaic -> hillshade
+env = { PYTHONPATH = "src" }
+inputs = ["src/ghost_rivers/hillshade.py", "src/ghost_rivers/config.py", "src/ghost_rivers/_util.py", "config.yaml"]
+outputs = ["data/processed/hillshade_3857.tif"]
+
+[tasks.tiles]
+cmd = "python -m ghost_rivers.tile"             # Step 4: -> PMTiles -> site/public/data
+env = { PYTHONPATH = "src" }
+depends-on = ["creeks", "hillshade"]
+inputs = ["src/ghost_rivers/tile.py", "src/ghost_rivers/config.py", "src/ghost_rivers/_util.py", "config.yaml", "data/processed/creeks_4326.geojson", "data/processed/hillshade_3857.tif"]
+outputs = ["data/processed/creeks.pmtiles", "data/processed/hillshade.pmtiles"]
+
+[tasks.all]
+depends-on = ["creeks", "hillshade", "tiles"]

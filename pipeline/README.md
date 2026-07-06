@@ -41,22 +41,45 @@ pwsh pipeline/scripts/get-pmtiles-windows.ps1   # → pipeline/bin/pmtiles.exe
 
 ```
 pipeline/
-├─ pixi.toml            # conda-forge env (gdal, geopandas, rasterio, tippecanoe)
-├─ config.yaml          # CRS + paths, no hard-coded paths in code
+├─ pixi.toml            # conda-forge env + task graph (the run order)
+├─ config.yaml          # study bbox, CRS, layer/field names, zoom levels — tune here
 ├─ scripts/             # toolchain bootstrap (WSL + Windows pmtiles)
-├─ src/ghost_rivers/    # Phase 1+ modules (empty in Phase 0)
+├─ src/ghost_rivers/
+│  ├─ config.py         # loads config.yaml, resolves paths
+│  ├─ _util.py          # subprocess runner + pmtiles-binary bootstrap
+│  ├─ clean_creeks.py   # Step 1+2: assemble creeks + attach 'year last seen'
+│  ├─ hillshade.py      # Step 3: DTM mosaic -> hillshade (2958 -> 3857)
+│  └─ tile.py           # Step 4: -> creeks.pmtiles + hillshade.pmtiles
 └─ data/
    ├─ raw/              # <-- YOU drop downloaded sources here (see raw/README.md)
-   ├─ interim/          # cleaned/reprojected working files
-   └─ processed/        # final tiles + rasters, copied into ../site/public
+   ├─ interim/          # mosaic, hillshade, mbtiles (working files)
+   └─ processed/        # creeks_4326.geojson, hillshade_3857.tif, *.pmtiles
 ```
 
 Everything under `data/` is git-ignored except the folder skeleton and
 `data/raw/README.md` (the drop checklist). Reproduce it from
 [`../docs/DATA_SOURCES.md`](../docs/DATA_SOURCES.md).
 
-## What runs when
+## Run order (Phase 1)
 
-Phase 0 (now): environment + folder skeleton only — no transform code.
-Phase 1: clean geometry, attach "year last seen", reproject, build the hillshade,
-georeference historical rasters, export PMTiles.
+Everything is parameterized from `config.yaml`. Run the whole thing, or a step:
+
+```bash
+pixi run all         # creeks + hillshade -> tiles  (the full build)
+pixi run creeks      # Step 1+2 only  -> data/processed/creeks_4326.geojson
+pixi run hillshade   # Step 3 only    -> data/processed/hillshade_3857.tif
+pixi run tiles       # Step 4 only    -> *.pmtiles + copies to ../site/public/data/
+```
+
+Steps cache on their inputs (code + `config.yaml`) and outputs, so re-running
+`all` skips the expensive DTM mosaic unless something changed.
+
+| Step | Module | Input | Output |
+| --- | --- | --- | --- |
+| 1+2 | `clean_creeks` | `LR_Toronto_Composite.gdb` (`BI_Lost_Rivers_20170705`) | `creeks_4326.geojson` (+ `year_last_seen`) |
+| 3 | `hillshade` | `data/raw/lidar_dtm/*.tif` | `hillshade_3857.tif` |
+| 4 | `tile` | the two above | `creeks.pmtiles`, `hillshade.pmtiles` → `site/public/data/` |
+
+The two `.pmtiles` under `site/public/data/` are the only artifacts the site loads.
+
+Later phases: georeference the historical map rasters and add them as a crossfade layer.
