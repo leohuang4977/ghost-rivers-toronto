@@ -110,6 +110,12 @@ def main() -> None:
         print(f"\n  {os.path.basename(f)}  ({size_mb:.2f} MB)  -> {dst}")
         _pmtiles_show(pmtiles_bin, dst)
 
+    # stage the small creek-year metadata for the timeline UI (counter + year range)
+    meta = os.path.join(processed, "creeks_meta.json")
+    if os.path.exists(meta):
+        shutil.copyfile(meta, os.path.join(pub, "creeks_meta.json"))
+        print("\n  creeks_meta.json staged")
+
 
 if __name__ == "__main__":
     main()

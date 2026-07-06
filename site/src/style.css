@@ -1,17 +1,20 @@
 :root {
   color-scheme: dark;
+  --ink: #cdd8e2;
+  --ink-dim: #808d9a;
+  --accent: #7fe3ff;
+  --panel-bg: rgba(7, 12, 20, 0.72);
+  --panel-brd: rgba(150, 178, 205, 0.14);
+  --panel-blur: blur(10px);
 }
 
 html,
 body {
   margin: 0;
   height: 100%;
-  background: #04070f; /* deep cool blue-black — matches darkBaseColor */
-  font-family:
-    system-ui,
-    -apple-system,
-    "Segoe UI",
-    sans-serif;
+  background: #04070f;
+  font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+  color: var(--ink);
 }
 
 #map {
@@ -19,9 +22,7 @@ body {
   inset: 0;
 }
 
-/* Radial vignette overlay — darker toward the edges/corners so the frame reads as
-   a composed still, not a floating rectangle. Values come from CONFIG.vignette
-   (set as CSS variables in main.ts). pointer-events:none keeps the map interactive. */
+/* Radial vignette (values from CONFIG.vignette, set in main.ts). */
 #vignette {
   position: absolute;
   inset: 0;
@@ -31,19 +32,361 @@ body {
   background: radial-gradient(
     ellipse 78% 82% at 50% 46%,
     transparent 0%,
-    transparent calc(var(--vig-inner, 38) * 1%),
+    transparent calc(var(--vig-inner, 40) * 1%),
     var(--vig-color, #02040a) 100%
   );
 }
 
-/* Kill the focus outline on the WebGL canvas without hurting real focus rings. */
 .maplibregl-canvas:focus {
   outline: none;
 }
+/* all controls + overlays sit above the vignette */
+.maplibregl-control-container {
+  z-index: 3;
+}
 
-/* Keep the attribution control above the vignette (#map has no z-index, so its
-   positioned control containers compete in the root stacking context). */
-.maplibregl-ctrl-bottom-right,
-.maplibregl-ctrl-bottom-left {
-  z-index: 2;
+/* ── Title (top-left) ─────────────────────────────────────────────────────── */
+.gr-title {
+  position: absolute;
+  top: 16px;
+  left: 18px;
+  z-index: 4;
+  max-width: 300px;
+  pointer-events: none;
+}
+.gr-title h1 {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  color: #eaf3fa;
+  text-shadow: 0 1px 14px rgba(0, 0, 0, 0.85);
+}
+.gr-title p {
+  margin: 4px 0 0;
+  font-size: 12.5px;
+  line-height: 1.4;
+  color: var(--ink-dim);
+  text-shadow: 0 1px 10px rgba(0, 0, 0, 0.85);
+}
+
+/* ── Time scrubber (bottom center) ────────────────────────────────────────── */
+.gr-timeline {
+  position: absolute;
+  left: 50%;
+  bottom: 26px;
+  transform: translateX(-50%);
+  z-index: 4;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  width: min(680px, calc(100vw - 48px));
+  padding: 12px 18px;
+  background: var(--panel-bg);
+  border: 1px solid var(--panel-brd);
+  border-radius: 14px;
+  backdrop-filter: var(--panel-blur);
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.45);
+}
+.gr-play {
+  flex: 0 0 auto;
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  border: 1px solid var(--panel-brd);
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--accent);
+  cursor: pointer;
+  position: relative;
+}
+.gr-play:hover {
+  background: rgba(127, 227, 255, 0.1);
+}
+.gr-play::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  margin: auto;
+  width: 0;
+  height: 0;
+  border-style: solid;
+  border-width: 8px 0 8px 13px;
+  border-color: transparent transparent transparent currentColor;
+  transform: translateX(2px);
+}
+.gr-play.is-playing::before {
+  border: none;
+  width: 4px;
+  height: 14px;
+  background: currentColor;
+  transform: translateX(-4px);
+}
+.gr-play.is-playing::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  margin: auto;
+  width: 4px;
+  height: 14px;
+  background: currentColor;
+  transform: translateX(4px);
+}
+.gr-tl-mid {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+.gr-tl-top {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+}
+.gr-year {
+  font-size: 30px;
+  font-weight: 600;
+  line-height: 1;
+  color: #eaf7ff;
+  font-variant-numeric: tabular-nums;
+}
+.gr-counter {
+  font-size: 12px;
+  color: var(--ink-dim);
+}
+.gr-counter b {
+  color: var(--accent);
+  font-variant-numeric: tabular-nums;
+}
+.gr-slider {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 4px;
+  border-radius: 3px;
+  background: linear-gradient(90deg, rgba(127, 227, 255, 0.45), rgba(127, 227, 255, 0.12));
+  outline: none;
+  cursor: pointer;
+}
+.gr-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #eaf7ff;
+  border: 2px solid var(--accent);
+  box-shadow: 0 0 10px rgba(127, 227, 255, 0.6);
+}
+.gr-slider::-moz-range-thumb {
+  width: 16px;
+  height: 16px;
+  border: 2px solid var(--accent);
+  border-radius: 50%;
+  background: #eaf7ff;
+  box-shadow: 0 0 10px rgba(127, 227, 255, 0.6);
+}
+
+/* ── Layers panel + legend (top-right control) ────────────────────────────── */
+.gr-panel {
+  background: var(--panel-bg);
+  border: 1px solid var(--panel-brd);
+  border-radius: 10px;
+  backdrop-filter: var(--panel-blur);
+  overflow: hidden;
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.4);
+  min-width: 158px;
+}
+.gr-panel-head {
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: 8px 12px;
+  background: none;
+  border: none;
+  color: var(--ink);
+  font-size: 12.5px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  cursor: pointer;
+}
+.gr-panel-head::after {
+  content: "▾";
+  float: right;
+  color: var(--ink-dim);
+}
+.gr-panel.gr-collapsed .gr-panel-body {
+  display: none;
+}
+.gr-panel.gr-collapsed .gr-panel-head::after {
+  content: "▸";
+}
+.gr-panel-body {
+  padding: 2px 12px 10px;
+}
+.gr-row {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 3px 0;
+  font-size: 12.5px;
+  color: var(--ink);
+  cursor: pointer;
+}
+.gr-row input {
+  accent-color: var(--accent);
+}
+.gr-legend {
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid var(--panel-brd);
+}
+.gr-legend .lg-h {
+  font-size: 10.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--ink-dim);
+  margin-bottom: 5px;
+}
+.lg-row {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 12px;
+  color: var(--ink-dim);
+  padding: 2px 0;
+}
+.sw {
+  display: inline-block;
+  width: 14px;
+  height: 4px;
+  border-radius: 2px;
+  flex: 0 0 auto;
+}
+.sw-hero {
+  background: #f4feff;
+  box-shadow: 0 0 6px #79dcff;
+}
+.sw-rest {
+  background: #3ba6d4;
+}
+.sw-undated {
+  background: #9fb0bb;
+}
+.sw-park {
+  width: 11px;
+  height: 11px;
+  background: #20301f;
+}
+.sw-ravine {
+  width: 11px;
+  height: 11px;
+  background: #183530;
+}
+
+/* ── Map labels (HTML markers) ────────────────────────────────────────────── */
+.map-label {
+  pointer-events: none;
+  white-space: nowrap;
+  user-select: none;
+  text-shadow: 0 1px 6px rgba(0, 0, 0, 0.95), 0 0 4px rgba(0, 0, 0, 0.9);
+}
+.label-water {
+  color: #6fa6c4;
+  font-style: italic;
+  font-size: 15px;
+  letter-spacing: 0.14em;
+  opacity: 0.82;
+}
+.label-landmark {
+  color: #aeb9c4;
+  font-size: 12px;
+  letter-spacing: 0.03em;
+}
+.label-street {
+  color: #7d8a97;
+  font-size: 10.5px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  opacity: 0.85;
+}
+
+/* ── Creek hover tooltip ──────────────────────────────────────────────────── */
+.creek-tooltip {
+  position: absolute;
+  z-index: 6;
+  pointer-events: none;
+  transform: translate(14px, -50%);
+  padding: 6px 10px;
+  background: rgba(7, 12, 20, 0.9);
+  border: 1px solid var(--panel-brd);
+  border-radius: 8px;
+  font-size: 12px;
+  color: var(--ink);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5);
+  white-space: nowrap;
+}
+.creek-tooltip b {
+  display: block;
+  color: var(--accent);
+  font-weight: 600;
+}
+.creek-tooltip span {
+  color: var(--ink-dim);
+  font-size: 11px;
+}
+
+/* ── Restyle MapLibre chrome to match ─────────────────────────────────────── */
+.maplibregl-ctrl-group {
+  background: var(--panel-bg) !important;
+  border: 1px solid var(--panel-brd) !important;
+  border-radius: 10px !important;
+  backdrop-filter: var(--panel-blur);
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.4) !important;
+  overflow: hidden;
+}
+.maplibregl-ctrl-group button {
+  background: transparent !important;
+  width: 32px;
+  height: 32px;
+}
+.maplibregl-ctrl-group button + button {
+  border-top: 1px solid var(--panel-brd) !important;
+}
+.maplibregl-ctrl-group button:hover {
+  background: rgba(127, 227, 255, 0.09) !important;
+}
+.maplibregl-ctrl-group button .maplibregl-ctrl-icon {
+  filter: invert(0.9) opacity(0.8);
+}
+.gr-reset {
+  color: var(--ink);
+}
+.gr-reset::after {
+  content: "⟳";
+  font-size: 17px;
+  line-height: 1;
+}
+.maplibregl-ctrl-scale {
+  background: rgba(7, 12, 20, 0.5) !important;
+  border: 1px solid var(--panel-brd) !important;
+  border-top: none;
+  color: var(--ink-dim) !important;
+  font-size: 10px;
+}
+.maplibregl-ctrl-attrib.maplibregl-compact {
+  background: rgba(7, 12, 20, 0.6) !important;
+}
+.maplibregl-ctrl-attrib a,
+.maplibregl-ctrl-attrib {
+  color: var(--ink-dim) !important;
+}
+.maplibregl-ctrl-attrib-button {
+  filter: invert(0.85) opacity(0.6);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .gr-play,
+  .gr-slider::-webkit-slider-thumb,
+  .gr-slider::-moz-range-thumb {
+    box-shadow: none;
+  }
 }

@@ -1,18 +1,16 @@
 // ─────────────────────────────────────────────────────────────────────────────
-// Ghost Rivers — Phase 2.6 layered scene: tuning knobs
+// Ghost Rivers — Phase 3 interactive piece: tuning knobs
 // ─────────────────────────────────────────────────────────────────────────────
-// The scene, bottom → top: dark ground → lake → (quiet) hillshade → parks → ravines
-// → street grid → the other creeks → Garrison (the glowing hero). Everything except
-// Garrison is deliberately quiet. Change a value, save, dev server hot-reloads.
+// The static Phase 2.6 scene, now with a time animation + UI. Scene, bottom → top:
+// dark ground → lake → hillshade → parks → ravines → streets → creeks (Garrison hero).
+// A "current year" drives creek visibility; creeks wink out as the city buries them.
 //
-// Terrain SHAPE/smoothness + hero selection are PIPELINE knobs (pipeline/config.yaml):
-// `dtm.target_res_m` (8 m), `hillshade.z_factor` (1.8), `creeks.hero_seed_lonlat`,
-// and the street-class whitelist. Re-run `pixi run tiles` after changing those.
+// Terrain SHAPE + hero selection stay PIPELINE knobs (pipeline/config.yaml).
 
 export type LonLat = [number, number];
 
 export const CONFIG = {
-  // ── Framing (keep the tight Garrison corridor) ───────────────────────────────
+  // ── Framing (default + "reset view" target) ─────────────────────────────────
   camera: {
     center: [-79.412, 43.644] as LonLat,
     zoom: 14.4,
@@ -20,46 +18,52 @@ export const CONFIG = {
     pitch: 0,
   },
 
-  // ── Ground + edges ───────────────────────────────────────────────────────────
-  darkBaseColor: "#04070f", // deep cool blue-black
-  vignette: {
-    color: "#02040a",
-    strength: 0.82, // 0 = off, 1 = strongest
-    innerStop: 38, // % radius that stays clear before the darkening ramps in
-  },
+  darkBaseColor: "#04070f",
+  vignette: { color: "#02040a", strength: 0.8, innerStop: 40 },
 
-  // ── Terrain: the QUIETEST thing in the frame — dark, soft, low-contrast ──────
+  // ── Terrain (quiet background; lifted a touch so the city reads on load) ──────
   hillshade: {
-    opacity: 0.3,
+    opacity: 0.34,
     brightnessMin: 0.0,
-    brightnessMax: 0.66, // cap highlights so it never becomes a pale sheet (but valleys still read)
-    contrast: 0.12, // low contrast = soft background texture, not a topo readout
+    brightnessMax: 0.72,
+    contrast: 0.12,
     saturation: -0.2,
   },
 
-  // ── City context (all quiet, under the creek glow) ───────────────────────────
+  // ── City context. Streets + parks raised so the grid clearly reads on load. ──
   city: {
-    water: { color: "#06142a", opacity: 0.9 }, // dark navy lake, subtly distinct from ground
-    parks: { color: "#1b2a1e", opacity: 0.38 }, // muted green-gray
-    ravines: { color: "#153028", opacity: 0.34 }, // slightly teal, a touch distinct
-    streets: { color: "#38465a", width: 0.7, opacity: 0.32 }, // faint cool-gray ghost lines
+    water: { color: "#06142a", opacity: 0.92 },
+    parks: { color: "#20301f", opacity: 0.5 },
+    ravines: { color: "#183530", opacity: 0.42 },
+    streets: { color: "#4a5c74", width: 0.85, opacity: 0.5 },
   },
 
-  // ── The glowing creeks, on top. blue-black + cyan-white palette ──────────────
+  // ── Creeks. blue-black + cyan-white; Garrison is the hero. ───────────────────
   creek: {
     intensity: 1.0,
     refZoom: 14.4,
-    // HERO = Garrison: brighter, wider, hot near-white core.
     hero: {
       halo: { color: "#1f8fce", width: 30, blur: 26, opacity: 0.5 },
       mid: { color: "#79dcff", width: 6.5, blur: 3.5, opacity: 0.9 },
       core: { color: "#f4feff", width: 2.1, blur: 0.4, opacity: 1.0 },
     },
-    // REST = the other buried creeks: dim, thin, cooler supporting layer.
     rest: {
       halo: { color: "#16597e", width: 15, blur: 13, opacity: 0.26 },
       mid: { color: "#3ba6d4", width: 3.0, blur: 2.0, opacity: 0.5 },
       core: { color: "#bfe6f4", width: 1.0, blur: 0.3, opacity: 0.7 },
     },
+    // Undated creeks (has_year=0): always visible, neutral + muted = "date unknown".
+    undated: {
+      glow: { color: "#5f7482", width: 6, blur: 4, opacity: 0.22 },
+      core: { color: "#c3d0d8", width: 1.1, blur: 0.3, opacity: 0.5 },
+    },
+  },
+
+  // ── Time animation ───────────────────────────────────────────────────────────
+  timeline: {
+    autoplayDurationMs: 34000, // one full 1802 → 2017 cycle
+    fadeWindowYears: 2.5, // a creek fades out over this many years after its last-mapped year
+    endYear: 2017, // present day (loop end); creeks dated 2017 survive to here
+    autoplay: true, // on by default (also respects prefers-reduced-motion)
   },
 };

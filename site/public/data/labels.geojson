@@ -1,0 +1,22 @@
+{
+  "type": "FeatureCollection",
+  "note": "Curated orientation labels, hand-placed. kind: water | landmark | street. Nudge coords to taste.",
+  "features": [
+    { "type": "Feature", "properties": { "name": "Lake Ontario", "kind": "water", "minzoom": 10 }, "geometry": { "type": "Point", "coordinates": [-79.408, 43.6295] } },
+    { "type": "Feature", "properties": { "name": "Trinity Bellwoods", "kind": "landmark", "minzoom": 11.5 }, "geometry": { "type": "Point", "coordinates": [-79.4138, 43.6478] } },
+    { "type": "Feature", "properties": { "name": "Fort York", "kind": "landmark", "minzoom": 12 }, "geometry": { "type": "Point", "coordinates": [-79.4065, 43.6385] } },
+    { "type": "Feature", "properties": { "name": "Little Italy", "kind": "landmark", "minzoom": 12 }, "geometry": { "type": "Point", "coordinates": [-79.4185, 43.6546] } },
+    { "type": "Feature", "properties": { "name": "Kensington Market", "kind": "landmark", "minzoom": 12 }, "geometry": { "type": "Point", "coordinates": [-79.4005, 43.6548] } },
+    { "type": "Feature", "properties": { "name": "Christie Pits", "kind": "landmark", "minzoom": 12 }, "geometry": { "type": "Point", "coordinates": [-79.4205, 43.6642] } },
+    { "type": "Feature", "properties": { "name": "Queen's Park", "kind": "landmark", "minzoom": 12 }, "geometry": { "type": "Point", "coordinates": [-79.3925, 43.6635] } },
+    { "type": "Feature", "properties": { "name": "Casa Loma", "kind": "landmark", "minzoom": 12 }, "geometry": { "type": "Point", "coordinates": [-79.4095, 43.6782] } },
+    { "type": "Feature", "properties": { "name": "The Annex", "kind": "landmark", "minzoom": 12.5 }, "geometry": { "type": "Point", "coordinates": [-79.4045, 43.6690] } },
+    { "type": "Feature", "properties": { "name": "Liberty Village", "kind": "landmark", "minzoom": 12.5 }, "geometry": { "type": "Point", "coordinates": [-79.4195, 43.6378] } },
+    { "type": "Feature", "properties": { "name": "Queen St W", "kind": "street", "minzoom": 13.5 }, "geometry": { "type": "Point", "coordinates": [-79.4210, 43.6461] } },
+    { "type": "Feature", "properties": { "name": "Dundas St W", "kind": "street", "minzoom": 13.5 }, "geometry": { "type": "Point", "coordinates": [-79.4238, 43.6513] } },
+    { "type": "Feature", "properties": { "name": "College St", "kind": "street", "minzoom": 13.5 }, "geometry": { "type": "Point", "coordinates": [-79.4168, 43.6558] } },
+    { "type": "Feature", "properties": { "name": "Bloor St W", "kind": "street", "minzoom": 13.5 }, "geometry": { "type": "Point", "coordinates": [-79.4150, 43.6632] } },
+    { "type": "Feature", "properties": { "name": "Bathurst St", "kind": "street", "minzoom": 13.5 }, "geometry": { "type": "Point", "coordinates": [-79.4088, 43.6555] } },
+    { "type": "Feature", "properties": { "name": "King St W", "kind": "street", "minzoom": 13.5 }, "geometry": { "type": "Point", "coordinates": [-79.4155, 43.6418] } }
+  ]
+}

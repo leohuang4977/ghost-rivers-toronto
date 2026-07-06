@@ -1,6 +1,9 @@
 // Builds the MapLibre style from CONFIG. Scene, bottom → top:
-// background → lake → hillshade → parks → ravines → streets → REST creeks → HERO creek.
-// Everything below the creeks is quiet context; Garrison sits on top as the hero.
+// background → lake → hillshade → parks → ravines → streets → creeks.
+// Creeks split by (hero/rest) × (dated/undated). The DATED layers are driven by the
+// timeline (their opacity is re-set each frame from the current year); the UNDATED
+// layers are static and neutral ("date unknown"). DATED_CREEK_LAYERS is the list the
+// timeline animates, with each layer's full (year = present) base opacity.
 import type {
   StyleSpecification,
   LayerSpecification,
@@ -12,7 +15,6 @@ import { CONFIG } from "./config";
 const pmtiles = (rel: string) =>
   `pmtiles://${new URL(rel, document.baseURI).href}`;
 
-// Scale a pixel value with zoom around the reference zoom.
 function byZoom(base: number): ExpressionSpecification {
   const ref = CONFIG.creek.refZoom;
   return [
@@ -27,12 +29,14 @@ function byZoom(base: number): ExpressionSpecification {
 
 type GlowSpec = { color: string; width: number; blur: number; opacity: number };
 
+const k = CONFIG.creek.intensity;
+const baseOpacity = (o: number) => Math.min(1, o * k);
+
 function glowLayer(
   id: string,
   s: GlowSpec,
   filter: FilterSpecification,
 ): LayerSpecification {
-  const k = CONFIG.creek.intensity;
   return {
     id,
     type: "line",
@@ -44,17 +48,12 @@ function glowLayer(
       "line-color": s.color,
       "line-width": byZoom(s.width * k),
       "line-blur": byZoom(s.blur * k),
-      "line-opacity": Math.min(1, s.opacity * k),
+      "line-opacity": baseOpacity(s.opacity),
     },
   };
 }
 
-function fillLayer(
-  id: string,
-  sourceLayer: string,
-  color: string,
-  opacity: number,
-): LayerSpecification {
+function fillLayer(id: string, sourceLayer: string, color: string, opacity: number): LayerSpecification {
   return {
     id,
     type: "fill",
@@ -64,8 +63,26 @@ function fillLayer(
   };
 }
 
-const HERO: FilterSpecification = ["==", ["get", "hero"], 1];
-const REST: FilterSpecification = ["!=", ["get", "hero"], 1];
+const HERO_DATED: FilterSpecification = ["all", ["==", ["get", "hero"], 1], ["==", ["get", "has_year"], 1]];
+const REST_DATED: FilterSpecification = ["all", ["!=", ["get", "hero"], 1], ["==", ["get", "has_year"], 1]];
+const UNDATED: FilterSpecification = ["==", ["get", "has_year"], 0];
+
+// The six dated creek glow layers + their full-visibility base opacity, for the timeline.
+export const DATED_CREEK_LAYERS: { id: string; base: number }[] = [
+  { id: "rest-halo", base: baseOpacity(CONFIG.creek.rest.halo.opacity) },
+  { id: "rest-mid", base: baseOpacity(CONFIG.creek.rest.mid.opacity) },
+  { id: "rest-core", base: baseOpacity(CONFIG.creek.rest.core.opacity) },
+  { id: "hero-halo", base: baseOpacity(CONFIG.creek.hero.halo.opacity) },
+  { id: "hero-mid", base: baseOpacity(CONFIG.creek.hero.mid.opacity) },
+  { id: "hero-core", base: baseOpacity(CONFIG.creek.hero.core.opacity) },
+];
+
+// All creek layer ids (for the layer-toggle panel), incl. the invisible hover target.
+export const CREEK_LAYER_IDS = [
+  "undated-glow", "undated-core",
+  ...DATED_CREEK_LAYERS.map((l) => l.id),
+  "creek-hit",
+];
 
 export function buildStyle(): StyleSpecification {
   const c = CONFIG.creek;
@@ -73,23 +90,14 @@ export function buildStyle(): StyleSpecification {
   const city = CONFIG.city;
   return {
     version: 8,
-    name: "ghost-rivers-scene",
+    name: "ghost-rivers-interactive",
     sources: {
-      hillshade: {
-        type: "raster",
-        url: pmtiles("data/hillshade.pmtiles"),
-        tileSize: 256,
-      },
+      hillshade: { type: "raster", url: pmtiles("data/hillshade.pmtiles"), tileSize: 256 },
       creeks: { type: "vector", url: pmtiles("data/creeks.pmtiles") },
       city: { type: "vector", url: pmtiles("data/city.pmtiles") },
     },
     layers: [
-      {
-        id: "background",
-        type: "background",
-        paint: { "background-color": CONFIG.darkBaseColor },
-      },
-      // lake sits under the terrain so its edge matches the hillshade exactly
+      { id: "background", type: "background", paint: { "background-color": CONFIG.darkBaseColor } },
       fillLayer("water", "water", city.water.color, city.water.opacity),
       {
         id: "hillshade",
@@ -104,7 +112,6 @@ export function buildStyle(): StyleSpecification {
           "raster-resampling": "linear",
         },
       },
-      // quiet land context
       fillLayer("parks", "parks", city.parks.color, city.parks.opacity),
       fillLayer("ravines", "ravines", city.ravines.color, city.ravines.opacity),
       {
@@ -119,13 +126,24 @@ export function buildStyle(): StyleSpecification {
           "line-opacity": city.streets.opacity,
         },
       },
-      // the buried creeks — supporting network, then Garrison on top
-      glowLayer("rest-halo", c.rest.halo, REST),
-      glowLayer("rest-mid", c.rest.mid, REST),
-      glowLayer("rest-core", c.rest.core, REST),
-      glowLayer("hero-halo", c.hero.halo, HERO),
-      glowLayer("hero-mid", c.hero.mid, HERO),
-      glowLayer("hero-core", c.hero.core, HERO),
+      // undated creeks — neutral, static, always visible
+      glowLayer("undated-glow", c.undated.glow, UNDATED),
+      glowLayer("undated-core", c.undated.core, UNDATED),
+      // dated creeks — timeline-driven (rest below, Garrison hero on top)
+      glowLayer("rest-halo", c.rest.halo, REST_DATED),
+      glowLayer("rest-mid", c.rest.mid, REST_DATED),
+      glowLayer("rest-core", c.rest.core, REST_DATED),
+      glowLayer("hero-halo", c.hero.halo, HERO_DATED),
+      glowLayer("hero-mid", c.hero.mid, HERO_DATED),
+      glowLayer("hero-core", c.hero.core, HERO_DATED),
+      // invisible wide line on top — a generous hover target for the creek tooltip
+      {
+        id: "creek-hit",
+        type: "line",
+        source: "creeks",
+        "source-layer": "creeks",
+        paint: { "line-color": "#000000", "line-opacity": 0, "line-width": byZoom(14) },
+      },
     ],
   };
 }

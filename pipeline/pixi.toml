@@ -44,7 +44,7 @@ versions = "python --version && gdalinfo --version && tippecanoe --version"
 cmd = "python -m ghost_rivers.clean_creeks"    # Step 1+2: geometry + year
 env = { PYTHONPATH = "src" }
 inputs = ["src/ghost_rivers/clean_creeks.py", "src/ghost_rivers/config.py", "config.yaml"]
-outputs = ["data/processed/creeks_4326.geojson"]
+outputs = ["data/processed/creeks_4326.geojson", "data/processed/creeks_meta.json"]
 
 [tasks.hillshade]
 cmd = "python -m ghost_rivers.hillshade"        # Step 3: DTM mosaic -> hillshade

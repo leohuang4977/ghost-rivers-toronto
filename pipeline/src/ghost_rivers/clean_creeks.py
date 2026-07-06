@@ -7,6 +7,7 @@ downtown study bbox, repairs/dedupes geometry, and attaches the `lastNTS` year
 Run:  pixi run creeks   (or PYTHONPATH=src python -m ghost_rivers.clean_creeks)
 """
 from __future__ import annotations
+import json
 import os
 import geopandas as gpd
 import pandas as pd
@@ -127,6 +128,14 @@ def main() -> None:
     total_km = g.to_crs(dtm_crs).length.sum() / 1000.0
     keep = g[["year_last_seen", "has_year", "hero", "geometry"]].reset_index(drop=True)
     keep.to_file(out_path, driver="GeoJSON")
+
+    # small metadata the timeline UI needs (year range + per-feature years for the counter)
+    years = [int(v) if pd.notna(v) else None for v in keep["year_last_seen"]]
+    dated = [y for y in years if y is not None]
+    meta = {"years": years, "min_year": min(dated), "max_year": max(dated),
+            "count": len(years), "undated": years.count(None)}
+    with open(os.path.join(processed, "creeks_meta.json"), "w", encoding="utf-8") as fh:
+        json.dump(meta, fh)
 
     print(f"\n[✓] wrote {out_path}")
     print(f"    features: {len(keep)}   total length: {total_km:.2f} km   "

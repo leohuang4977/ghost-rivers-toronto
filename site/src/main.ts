@@ -1,18 +1,19 @@
 import "maplibre-gl/dist/maplibre-gl.css";
 import "./style.css";
 import maplibregl from "maplibre-gl";
+import type { IControl, Map as MLMap } from "maplibre-gl";
 import { Protocol } from "pmtiles";
 import { CONFIG } from "./config";
 import { buildStyle } from "./style";
+import { createTimeline } from "./timeline";
+import { createLabels } from "./labels";
+import { createUI } from "./ui";
 
-// Register the PMTiles protocol so the raster hillshade + vector creeks load as
-// self-contained static files (no tile server, no vendor token).
+// Self-contained PMTiles protocol (no tile server, no vendor token).
 const protocol = new Protocol();
 maplibregl.addProtocol("pmtiles", protocol.tile);
 
-// Phase 2.5 — the cinematic still: Garrison Creek glowing over a dark, cool,
-// hillshaded downtown. One composed frame; no scroll, timeline, or interaction
-// beyond default pan/zoom. All the look lives in config.ts + style.ts.
+// Phase 3 — the interactive piece: the Phase 2.6 scene + a time animation + UI.
 const map = new maplibregl.Map({
   container: "map",
   style: buildStyle(),
@@ -20,18 +21,45 @@ const map = new maplibregl.Map({
   zoom: CONFIG.camera.zoom,
   bearing: CONFIG.camera.bearing,
   pitch: CONFIG.camera.pitch,
+  maxPitch: 0, // stay flat — a tilt would expose the DTM edge as a "horizon"
   attributionControl: false,
-  dragRotate: false,
-  pitchWithRotate: false,
-  // v5 moved WebGL context attrs here; needed so the frame can be exported (S shortcut)
   canvasContextAttributes: { preserveDrawingBuffer: true },
 });
 
+// Reset-view control: fly back to the default Garrison framing.
+class ResetControl implements IControl {
+  private _container?: HTMLElement;
+  onAdd(m: MLMap): HTMLElement {
+    const c = document.createElement("div");
+    c.className = "maplibregl-ctrl maplibregl-ctrl-group";
+    const b = document.createElement("button");
+    b.type = "button";
+    b.className = "gr-reset";
+    b.title = "Reset view";
+    b.setAttribute("aria-label", "Reset view");
+    b.addEventListener("click", () =>
+      m.flyTo({ ...CONFIG.camera, duration: 1200, essential: true }),
+    );
+    c.appendChild(b);
+    this._container = c;
+    return c;
+  }
+  onRemove(): void {
+    this._container?.remove();
+  }
+}
+
+map.addControl(
+  new maplibregl.NavigationControl({ showZoom: true, showCompass: true }),
+  "top-right",
+);
+map.addControl(new ResetControl(), "top-right");
+map.addControl(new maplibregl.ScaleControl({ maxWidth: 90, unit: "metric" }), "bottom-left");
 map.addControl(
   new maplibregl.AttributionControl({
     compact: true,
     customAttribution:
-      "Historical Hydrography & Disappearing Rivers of Toronto (M. Fortin / U of T Map & Data Library) · Ontario lidar DTM",
+      "Historical Hydrography & Disappearing Rivers of Toronto (M. Fortin / U of T Map & Data Library) · Ontario lidar DTM · City of Toronto Open Data",
   }),
   "bottom-right",
 );
@@ -46,19 +74,24 @@ if (vigEl) {
 }
 
 map.on("error", (e) => console.error("[ghost-rivers] map error:", e.error));
-map.on("idle", () => console.info("[ghost-rivers] cinematic still rendered"));
 
-// Dev-only: press "S" to save the current frame as a PNG reference. Reading the
-// canvas inside a render pass keeps the WebGL buffer valid at capture time.
+map.on("load", async () => {
+  const [timeline, labels] = await Promise.all([createTimeline(map), createLabels(map)]);
+  createUI(map, timeline, labels);
+  console.info("[ghost-rivers] interactive piece ready");
+});
+
+// Dev-only: press "S" to save the current frame as a PNG reference (real browser).
 if (import.meta.env.DEV) {
   window.addEventListener("keydown", (e) => {
     if (e.key.toLowerCase() !== "s" || e.ctrlKey || e.metaKey) return;
+    if (e.target instanceof HTMLInputElement) return;
     map.once("render", () => {
       map.getCanvas().toBlob((blob) => {
         if (!blob) return;
         const a = document.createElement("a");
         a.href = URL.createObjectURL(blob);
-        a.download = "money-shot.png";
+        a.download = "ghost-rivers.png";
         a.click();
         setTimeout(() => URL.revokeObjectURL(a.href), 5000);
       }, "image/png");
