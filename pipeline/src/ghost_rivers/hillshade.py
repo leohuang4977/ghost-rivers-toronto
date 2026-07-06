@@ -40,10 +40,13 @@ def main() -> None:
     dtm_crs = cfg["crs"]["dtm"]      # EPSG:2958
     web_crs = cfg["crs"]["web"]      # EPSG:3857
     res = cfg["dtm"]["target_res_m"]
+    resampling = cfg["dtm"].get("resampling", "bilinear")
     out_nodata = cfg["dtm"]["out_nodata"]
     margin = cfg["hillshade"]["margin_m"]
     zf = cfg["hillshade"]["z_factor"]
     multidir = cfg["hillshade"]["multidirectional"]
+    azimuth = cfg["hillshade"].get("azimuth", 315)
+    altitude = cfg["hillshade"].get("altitude", 45)
 
     interim = ensure_dir(resolve(cfg["paths"]["interim"]))
     processed = ensure_dir(resolve(cfg["paths"]["processed"]))
@@ -66,7 +69,7 @@ def main() -> None:
     # ── mosaic -> 1 m, forced 2D EPSG:2958, per-tile nodata masked, one clean nodata out
     run(["gdalwarp",
          "-s_srs", dtm_crs, "-t_srs", dtm_crs,        # force plain 2D 2958 (drop CGVD2013)
-         "-tr", res, res, "-r", "bilinear",
+         "-tr", res, res, "-r", resampling,
          "-te", mb[0], mb[1], mb[2], mb[3],
          "-dstnodata", out_nodata, "-ot", "Float32",
          "-of", "GTiff", "-co", "COMPRESS=DEFLATE", "-co", "PREDICTOR=3",
@@ -89,6 +92,8 @@ def main() -> None:
               "-of", "GTiff", "-co", "COMPRESS=DEFLATE", "-co", "TILED=YES"]
     if multidir:
         hs_cmd.append("-multidirectional")
+    else:
+        hs_cmd += ["-az", azimuth, "-alt", altitude]
     run(hs_cmd)
 
     # ── reproject the hillshade to Web Mercator, clip to the EXACT study bbox ───

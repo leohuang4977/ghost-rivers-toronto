@@ -1,57 +1,59 @@
 import "maplibre-gl/dist/maplibre-gl.css";
 import "./style.css";
-import maplibregl, { type StyleSpecification } from "maplibre-gl";
+import maplibregl from "maplibre-gl";
 import { Protocol } from "pmtiles";
+import { CONFIG } from "./config";
+import { buildStyle } from "./style";
 
-// Register the PMTiles protocol up front. Nothing uses it yet (Phase 0 renders a
-// blank dark basemap with zero network requests), but wiring it now means the
-// Phase 2 swap to the self-contained Protomaps basemap is a one-line style edit:
-//   sources: { basemap: { type: "vector", url: "pmtiles://./data/basemap.pmtiles" } }
-// ...with no code plumbing to add later.
+// Register the PMTiles protocol so the raster hillshade + vector creeks load as
+// self-contained static files (no tile server, no vendor token).
 const protocol = new Protocol();
 maplibregl.addProtocol("pmtiles", protocol.tile);
 
-// A blank *dark* style: a single background layer. No glyphs, sprites, tiles, or
-// tokens — it cannot rate-limit, expire, or bill, which is the whole point of the
-// no-runtime-dependency rule. Real layers (creeks, hillshade, historical rasters)
-// arrive in Phases 1–3.
-const style: StyleSpecification = {
-  version: 8,
-  name: "ghost-rivers-blank-dark",
-  sources: {},
-  layers: [
-    {
-      id: "background",
-      type: "background",
-      paint: { "background-color": "#0b0f14" },
-    },
-  ],
-};
-
+// Phase 2 — the money shot: a glowing buried creek over a dark, hillshaded
+// downtown. One composed still; no scroll, timeline, or interaction beyond
+// default pan/zoom. All the look lives in config.ts + style.ts.
 const map = new maplibregl.Map({
   container: "map",
-  style,
-  center: [-79.4103, 43.6465], // Garrison Creek corridor / Trinity Bellwoods
-  zoom: 12.5,
+  style: buildStyle(),
+  center: CONFIG.camera.center,
+  zoom: CONFIG.camera.zoom,
+  bearing: CONFIG.camera.bearing,
+  pitch: CONFIG.camera.pitch,
   attributionControl: false,
-  // Keep the interaction feel restrained; the scroll drives the camera later.
   dragRotate: false,
   pitchWithRotate: false,
+  // v5 moved WebGL context attrs here; needed so the frame can be exported (S shortcut)
+  canvasContextAttributes: { preserveDrawingBuffer: true },
 });
 
 map.addControl(
   new maplibregl.AttributionControl({
     compact: true,
     customAttribution:
-      "Ghost Rivers of Toronto — data sources credited in the About panel",
+      "Historical Hydrography & Disappearing Rivers of Toronto (M. Fortin / U of T Map & Data Library) · Ontario lidar DTM",
   }),
   "bottom-right",
 );
-map.addControl(
-  new maplibregl.NavigationControl({ showZoom: true, showCompass: false }),
-  "top-right",
-);
 
-map.on("load", () => {
-  console.info("[ghost-rivers] blank dark basemap loaded");
-});
+map.on("error", (e) => console.error("[ghost-rivers] map error:", e.error));
+map.on("idle", () => console.info("[ghost-rivers] money-shot rendered"));
+
+// Dev-only: press "S" to save the current frame as a PNG reference. Reading the
+// canvas inside a render pass keeps the WebGL buffer valid at capture time.
+if (import.meta.env.DEV) {
+  window.addEventListener("keydown", (e) => {
+    if (e.key.toLowerCase() !== "s" || e.ctrlKey || e.metaKey) return;
+    map.once("render", () => {
+      map.getCanvas().toBlob((blob) => {
+        if (!blob) return;
+        const a = document.createElement("a");
+        a.href = URL.createObjectURL(blob);
+        a.download = "money-shot.png";
+        a.click();
+        setTimeout(() => URL.revokeObjectURL(a.href), 5000);
+      }, "image/png");
+    });
+    map.triggerRepaint();
+  });
+}
