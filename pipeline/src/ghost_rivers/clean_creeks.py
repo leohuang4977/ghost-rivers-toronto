@@ -11,7 +11,7 @@ import os
 import geopandas as gpd
 import pandas as pd
 from shapely import make_valid
-from shapely.geometry import box
+from shapely.geometry import box, Point
 
 from ghost_rivers.config import CONFIG, resolve, ensure_dir
 
@@ -71,6 +71,33 @@ def main() -> None:
     g = g[~g.geometry.apply(lambda geom: geom.wkb).duplicated()].copy()
     print(f"[1] repaired geometry; dropped {before - len(g)} exact duplicates -> {len(g)} features")
 
+    # ── HERO flag: the connected creek network containing the seed = Garrison ───
+    g = g.reset_index(drop=True)
+    g["fid"] = range(len(g))
+    joined = gpd.sjoin(g[["fid", "geometry"]], g[["fid", "geometry"]], predicate="intersects")
+    parent = list(range(len(g)))
+
+    def _find(x: int) -> int:
+        while parent[x] != x:
+            parent[x] = parent[parent[x]]
+            x = parent[x]
+        return x
+
+    for a, b in zip(joined["fid_left"], joined["fid_right"]):
+        ra, rb = _find(int(a)), _find(int(b))
+        if ra != rb:
+            parent[ra] = rb
+    comp = [_find(i) for i in range(len(g))]
+
+    seed_lon, seed_lat = ccfg["hero_seed_lonlat"]
+    seed_m = gpd.GeoSeries([Point(seed_lon, seed_lat)], crs="EPSG:4326").to_crs(dtm_crs).iloc[0]
+    nearest = int(g.to_crs(dtm_crs).geometry.distance(seed_m).idxmin())
+    hero_comp = comp[nearest]
+    g["hero"] = [1 if c == hero_comp else 0 for c in comp]
+    hero_km = g.loc[g["hero"] == 1].to_crs(dtm_crs).length.sum() / 1000.0
+    print(f"[1] hero network (Garrison, from seed): {int(g['hero'].sum())} features, "
+          f"{hero_km:.2f} km — the rest render as the dim supporting layer")
+
     # ── attach 'year last seen' (Step 2) ───────────────────────────────────────
     raw = pd.to_numeric(g[year_field], errors="coerce")
     missing = raw.isna() | raw.isin(year_nodata)
@@ -98,7 +125,7 @@ def main() -> None:
 
     # ── length report + write ──────────────────────────────────────────────────
     total_km = g.to_crs(dtm_crs).length.sum() / 1000.0
-    keep = g[["year_last_seen", "has_year", "geometry"]].reset_index(drop=True)
+    keep = g[["year_last_seen", "has_year", "hero", "geometry"]].reset_index(drop=True)
     keep.to_file(out_path, driver="GeoJSON")
 
     print(f"\n[✓] wrote {out_path}")

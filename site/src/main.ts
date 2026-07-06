@@ -10,9 +10,9 @@ import { buildStyle } from "./style";
 const protocol = new Protocol();
 maplibregl.addProtocol("pmtiles", protocol.tile);
 
-// Phase 2 — the money shot: a glowing buried creek over a dark, hillshaded
-// downtown. One composed still; no scroll, timeline, or interaction beyond
-// default pan/zoom. All the look lives in config.ts + style.ts.
+// Phase 2.5 — the cinematic still: Garrison Creek glowing over a dark, cool,
+// hillshaded downtown. One composed frame; no scroll, timeline, or interaction
+// beyond default pan/zoom. All the look lives in config.ts + style.ts.
 const map = new maplibregl.Map({
   container: "map",
   style: buildStyle(),
@@ -36,8 +36,17 @@ map.addControl(
   "bottom-right",
 );
 
+// Drive the CSS vignette overlay from config.
+const vig = CONFIG.vignette;
+const vigEl = document.getElementById("vignette");
+if (vigEl) {
+  vigEl.style.setProperty("--vig-color", vig.color);
+  vigEl.style.setProperty("--vig-strength", String(vig.strength));
+  vigEl.style.setProperty("--vig-inner", String(vig.innerStop));
+}
+
 map.on("error", (e) => console.error("[ghost-rivers] map error:", e.error));
-map.on("idle", () => console.info("[ghost-rivers] money-shot rendered"));
+map.on("idle", () => console.info("[ghost-rivers] cinematic still rendered"));
 
 // Dev-only: press "S" to save the current frame as a PNG reference. Reading the
 // canvas inside a render pass keeps the WebGL buffer valid at capture time.

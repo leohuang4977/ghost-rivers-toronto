@@ -24,6 +24,10 @@ creeks:
   # Authoritative "year the river was last drawn on a map". 0 means "no year".
   year_field: "lastNTS"
   year_nodata: [0]
+  # HERO selection: the source has no creek names, so we tag the connected creek
+  # network that contains this seed point as the protagonist (hero=1). The seed is
+  # the buried Crawford St bridge in Trinity Bellwoods — definitively on Garrison.
+  hero_seed_lonlat: [-79.4137, 43.6472]
 
 # ── DTM mosaic / hillshade ───────────────────────────────────────────────────
 dtm:
@@ -34,11 +38,12 @@ dtm:
   # The "DTM" still carries building-removal pads / rail cuts / block edges that read
   # as urban clutter and bury the ravine story. Area-averaging 0.5 m -> a coarser grid
   # washes out those ~10-40 m features while keeping the 100 m+ buried valleys.
-  target_res_m: 4.0
+  # 6 m suppresses the fine urban grid further while broad buried valleys survive.
+  target_res_m: 6.0
   resampling: "average"      # area-average smoothing (NOT bilinear) to suppress clutter
 
 hillshade:
-  z_factor: 2.2              # vertical drama so the shallow buried valleys read
+  z_factor: 2.5              # vertical drama so the shallow buried valleys read
   multidirectional: false    # single low sun = sculptural shadows, moodier than flat multi-dir
   azimuth: 315               # NW light
   altitude: 45

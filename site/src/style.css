@@ -6,7 +6,7 @@ html,
 body {
   margin: 0;
   height: 100%;
-  background: #0b0f14; /* near-black deep slate — the "dark ground" of the design */
+  background: #04070f; /* deep cool blue-black — matches darkBaseColor */
   font-family:
     system-ui,
     -apple-system,
@@ -19,7 +19,31 @@ body {
   inset: 0;
 }
 
+/* Radial vignette overlay — darker toward the edges/corners so the frame reads as
+   a composed still, not a floating rectangle. Values come from CONFIG.vignette
+   (set as CSS variables in main.ts). pointer-events:none keeps the map interactive. */
+#vignette {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 1;
+  opacity: var(--vig-strength, 0.8);
+  background: radial-gradient(
+    ellipse 78% 82% at 50% 46%,
+    transparent 0%,
+    transparent calc(var(--vig-inner, 38) * 1%),
+    var(--vig-color, #02040a) 100%
+  );
+}
+
 /* Kill the focus outline on the WebGL canvas without hurting real focus rings. */
 .maplibregl-canvas:focus {
   outline: none;
+}
+
+/* Keep the attribution control above the vignette (#map has no z-index, so its
+   positioned control containers compete in the root stacking context). */
+.maplibregl-ctrl-bottom-right,
+.maplibregl-ctrl-bottom-left {
+  z-index: 2;
 }
