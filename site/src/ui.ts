@@ -78,7 +78,7 @@ export function createUI(
     el(
       "div",
       "gr-title",
-      `<h1>Ghost Rivers of Toronto</h1><p>The buried creeks beneath the modern city — watch them vanish as it grows.</p>`,
+      `<h1>Ghost Rivers of Toronto</h1><p>The buried creeks beneath the modern city. Watch them vanish as it grows.</p>`,
     ),
   );
   createAbout(); // "About & sources" link + card (data sources + accuracy disclaimers)
@@ -87,7 +87,7 @@ export function createUI(
   const bar = el("div", "gr-timeline");
   const playBtn = el("button", "gr-play") as HTMLButtonElement;
   playBtn.setAttribute("aria-label", "Play / pause");
-  const yearOut = el("div", "gr-year", "—");
+  const yearOut = el("div", "gr-year", ""); // set to the live year on the first frame
   const counter = el("div", "gr-counter");
   const slider = el("input", "gr-slider") as HTMLInputElement;
   slider.type = "range";

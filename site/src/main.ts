@@ -6,7 +6,7 @@ import { Protocol } from "pmtiles";
 import { CONFIG } from "./config";
 import { buildStyle } from "./style";
 import { computeFraming, currentFraming } from "./framing";
-import { introWillRun, introStartCamera, runIntro } from "./intro";
+import { storyWillRun, storyStartCamera, runStory } from "./story";
 import { createTimeline } from "./timeline";
 import { createLabels } from "./labels";
 import { createBeats } from "./beats";
@@ -21,9 +21,9 @@ maplibregl.addProtocol("pmtiles", protocol.tile);
 // look to that zoom (widths/blurs render as designed at whatever zoom the framing lands on).
 const landing = computeFraming(window.innerWidth || 1280, window.innerHeight || 800);
 CONFIG.creek.refZoom = landing.zoom;
-const willIntro = introWillRun();
-const startCam = willIntro
-  ? introStartCamera(landing, window.innerWidth || 1280, window.innerHeight || 800)
+const willStory = storyWillRun();
+const startCam = willStory
+  ? storyStartCamera(landing, window.innerWidth || 1280, window.innerHeight || 800)
   : { ...landing, pitch: 0 };
 
 const map = new maplibregl.Map({
@@ -96,18 +96,17 @@ if (import.meta.env.DEV) (window as unknown as Record<string, unknown>).__gr = {
 
 map.on("load", async () => {
   const timeline = await createTimeline(map);
-  if (willIntro) timeline.pause(); // hold the full 1802 glow while the intro glides
+  if (willStory) timeline.pause(); // story drives the year manually until it hands to explore
   const labels = await createLabels(map, timeline);
   const beats = createBeats(map, timeline);
   createFlow(map); // flowing-water current on the hero creek
   createUI(map, timeline, labels, beats);
-  if (willIntro) {
-    beats.setVisible(false); // no beat cards over the intro captions
-    runIntro(map, currentFraming(map.getContainer()), () => {
-      beats.setVisible(true);
-      timeline.play(); // landing frame reached — the story starts
-    });
+  if (willStory) {
+    // STORY MODE first visit: the narrated script plays once, then hands to explore mode.
+    // runStory manages chrome (.gr-storying), beats, interactivity, and the timeline itself.
+    runStory(map, timeline, beats, currentFraming(map.getContainer()), () => {});
   }
+  // EXPLORE MODE (repeat visits): the timeline autoplays the loop by default, beats + chrome on.
   if (import.meta.env.DEV)
     Object.assign((window as unknown as Record<string, unknown>).__gr as object, { timeline, beats });
   console.info("[ghost-rivers] interactive piece ready");

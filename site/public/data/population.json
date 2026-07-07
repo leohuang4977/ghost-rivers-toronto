@@ -1,10 +1,10 @@
 {
   "entity": "City of Toronto (historical / pre-1998 boundaries)",
-  "note": "Much of this growth — above all the leaps of the 1880s–1910s — was the city ANNEXING neighbouring towns and villages, not only births and newcomers. Annexation largely stopped by the 1920s. In its own historical boundaries the old City never reached a million: Metropolitan Toronto, a far wider area, passed one million around 1951, and today's amalgamated City of Toronto holds ~2.8 million over that larger territory.",
+  "note": "Much of this growth, above all the leaps of the 1880s and 1900s, was the city annexing neighbouring towns and villages, not only births and newcomers. Annexation largely stopped by the 1920s. In its own historical boundaries the old City never reached a million. Metropolitan Toronto, a far wider area, passed one million around 1951, and today's amalgamated City of Toronto holds about 2.8 million over that larger territory.",
   "sources": [
-    { "title": "Old Toronto — Wikipedia (pre-1998 City population + annexation chronology, sourced to the census)", "url": "https://en.wikipedia.org/wiki/Old_Toronto" },
-    { "title": "History of Toronto — Wikipedia", "url": "https://en.wikipedia.org/wiki/History_of_Toronto" },
-    { "title": "Statistics Canada — Census of Canada", "url": "https://www.statcan.gc.ca" }
+    { "title": "Old Toronto (Wikipedia): pre-1998 City population and annexation chronology, sourced to the census", "url": "https://en.wikipedia.org/wiki/Old_Toronto" },
+    { "title": "History of Toronto (Wikipedia)", "url": "https://en.wikipedia.org/wiki/History_of_Toronto" },
+    { "title": "Statistics Canada, Census of Canada", "url": "https://www.statcan.gc.ca" }
   ],
   "series": [
     { "year": 1816, "pop": 720 },

@@ -91,7 +91,7 @@ export async function createLabels(map: MLMap, timeline: TimelineController): Pr
   const focusHTML = (p: Record<string, unknown>): string => {
     const name = p.hero === 1 ? "Garrison Creek" : "A buried creek";
     if (p.has_year !== 1 || p.year_last_seen == null) {
-      return `<b>${name}</b><span>Date unknown — kept on the map, neutral.</span>`;
+      return `<b>${name}</b><span>Date unknown. Kept on the map, neutral.</span>`;
     }
     const y = Number(p.year_last_seen);
     const end = CONFIG.timeline.endYear;

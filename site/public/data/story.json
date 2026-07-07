@@ -1,0 +1,27 @@
+{
+  "note": "The narrated script. One idea per card, keyed to a year. Edit the text here. No em dashes or semicolons in this file. The final card (act END) closes the story and shows the Replay / Explore buttons.",
+  "chapters": [
+    { "year": 1802, "act": "I", "text": "Dozens of creeks run through forest and marsh to the lake. Every valley on this map was carved by one." },
+    { "year": 1815, "act": "I", "text": "The town of York sits by the harbour. A few thousand people. The creeks are the water supply." },
+    { "year": 1834, "act": "I", "text": "York becomes the City of Toronto. Nine thousand people, and growing fast." },
+
+    { "year": 1855, "act": "II", "text": "The railway arrives. Mills and factories crowd the creek banks, and their waste goes straight into the water." },
+    { "year": 1866, "act": "II", "text": "There are no real sewers yet. Privies, stables and slaughterhouses all drain downhill to the nearest creek." },
+    { "year": 1875, "act": "II", "text": "Taddle Creek still pools beside the young university." },
+    { "year": 1880, "act": "II", "text": "Cholera and typhoid keep returning. The creeks carry both." },
+
+    { "year": 1884, "act": "III", "text": "The city votes to bury Garrison Creek in a brick pipe. A health hazard becomes a sewer, and the ravine becomes real estate." },
+    { "year": 1889, "act": "III", "text": "Burying a creek raises the land around it. A property boom follows the sewer crews." },
+    { "year": 1898, "act": "III", "text": "The last native salmon in Lake Ontario is caught off Scarborough. The fish were gone before the water was." },
+    { "year": 1905, "act": "III", "text": "Toronto swallows its neighbours. Yorkville, Parkdale, the Annex. Each one brings more creeks, and the pipes follow." },
+    { "year": 1912, "act": "III", "text": "In a single generation, most of this map has gone dark." },
+
+    { "year": 1930, "act": "IV", "text": "The ravines are filled with rubble and subway dirt, and parks are laid on top. The Crawford Street bridge is buried where it stands." },
+    { "year": 1950, "act": "IV", "text": "Some streets still curve for no reason anyone remembers. The reason is a creek." },
+
+    { "year": 2000, "act": "V", "text": "The creeks never left. They run through pipes under these streets, and after a hard rain some still overflow into the lake." },
+    { "year": 2017, "act": "V", "text": "A few stretches were never buried, or have been opened back to daylight. Those are the ones still glowing." },
+
+    { "year": null, "act": "END", "text": "I still fish this lake. Now when a street dips for no reason, I know what runs beneath it. You are probably standing on a river." }
+  ]
+}

@@ -734,48 +734,68 @@ body {
   }
 }
 
-/* ── Intro sequence (fullscreen open + glide) ─────────────────────────────── */
-/* While the intro glides, all chrome is hidden; removing .gr-introing fades it in. */
+/* ── Story mode (narrated first-visit playback) ───────────────────────────── */
+/* While the story plays, all chrome is hidden. Removing .gr-storying fades it back in. */
+:root {
+  --font-serif: Georgia, "Iowan Old Style", "Times New Roman", serif;
+  --font-mono: ui-monospace, "Cascadia Mono", "Segoe UI Mono", Consolas, monospace;
+}
 .gr-title,
 .gr-timeline,
 .gr-about-btn,
 .maplibregl-control-container {
   transition: opacity 900ms ease;
 }
-.gr-introing .gr-title,
-.gr-introing .gr-timeline,
-.gr-introing .gr-about-btn,
-.gr-introing .maplibregl-control-container {
+.gr-storying .gr-title,
+.gr-storying .gr-timeline,
+.gr-storying .gr-about-btn,
+.gr-storying .maplibregl-control-container {
   opacity: 0;
   pointer-events: none;
 }
-.gr-intro-cap {
+
+/* narrative card: fixed lower-third, left of centre, clear of the hero creek. Two slots
+   stacked in the same spot crossfade (in: rise + fade, out: fade). */
+.gr-story-card {
   position: absolute;
-  left: 50%;
-  bottom: 12vh;
-  transform: translateX(-50%) translateY(6px);
+  left: clamp(18px, 6vw, 90px);
+  bottom: 15vh;
   z-index: 5;
-  max-width: min(620px, calc(100vw - 48px));
-  padding: 14px 22px;
-  text-align: center;
-  font-size: 17px;
-  line-height: 1.55;
-  color: #e8eff6;
-  text-shadow: 0 1px 18px rgba(0, 0, 0, 0.95), 0 0 6px rgba(0, 0, 0, 0.9);
-  opacity: 0;
-  transition: opacity var(--cap-fade, 700ms) ease, transform var(--cap-fade, 700ms) ease;
+  width: min(460px, calc(100vw - 40px));
   pointer-events: none;
+  opacity: 0;
+  transform: translateY(12px);
+  transition: opacity var(--story-fade, 650ms) ease, transform var(--story-fade, 650ms) ease;
 }
-.gr-intro-cap.is-on {
+.gr-story-card.is-on {
   opacity: 1;
-  transform: translateX(-50%) translateY(0);
+  transform: translateY(0);
 }
-.gr-intro-skip {
+.gr-story-year {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  font-weight: 500;
+  letter-spacing: 0.14em;
+  color: var(--warm);
+  margin-bottom: 10px;
+  text-shadow: 0 1px 10px rgba(0, 0, 0, 0.9);
+}
+.gr-story-text {
+  margin: 0;
+  font-family: var(--font-serif);
+  font-size: clamp(18px, 2.3vw, 24px);
+  line-height: 1.42;
+  color: #eef4fa;
+  text-shadow: 0 1px 20px rgba(0, 0, 0, 0.95), 0 0 8px rgba(0, 0, 0, 0.85);
+}
+
+/* skip / next (persistent, bottom-right), and the end button bar */
+.gr-story-skip,
+.gr-story-next {
   position: absolute;
-  right: 20px;
-  bottom: 20px;
+  bottom: 22px;
   z-index: 6;
-  padding: 6px 14px;
+  padding: 7px 15px;
   font-size: 11.5px;
   letter-spacing: 0.04em;
   color: var(--ink-dim);
@@ -784,11 +804,85 @@ body {
   border-radius: 999px;
   backdrop-filter: var(--panel-blur);
   cursor: pointer;
-  transition: color 0.15s, border-color 0.15s;
+  transition: color 0.15s, border-color 0.15s, background 0.15s;
 }
-.gr-intro-skip:hover {
+.gr-story-skip {
+  right: 22px;
+}
+.gr-story-next {
+  left: 50%;
+  transform: translateX(-50%);
+}
+.gr-story-skip:hover,
+.gr-story-next:hover {
   color: var(--ink);
   border-color: rgba(127, 227, 255, 0.4);
+}
+.gr-story-end {
+  position: absolute;
+  left: clamp(18px, 6vw, 90px);
+  bottom: calc(15vh - 58px);
+  z-index: 6;
+  display: flex;
+  gap: 12px;
+}
+.gr-story-btn {
+  padding: 9px 18px;
+  font-size: 13px;
+  letter-spacing: 0.02em;
+  color: var(--ink);
+  background: rgba(7, 12, 20, 0.7);
+  border: 1px solid var(--panel-brd);
+  border-radius: 8px;
+  backdrop-filter: var(--panel-blur);
+  cursor: pointer;
+  transition: color 0.15s, border-color 0.15s, background 0.15s;
+}
+.gr-story-btn:hover {
+  border-color: rgba(127, 227, 255, 0.45);
+}
+.gr-story-btn.is-primary {
+  color: #06121c;
+  background: var(--accent);
+  border-color: var(--accent);
+  font-weight: 600;
+}
+.gr-story-btn.is-primary:hover {
+  background: #a6ecff;
+}
+
+/* one-time interaction hint on entering explore mode */
+.gr-hint {
+  position: absolute;
+  left: 50%;
+  bottom: 108px;
+  transform: translateX(-50%) translateY(6px);
+  z-index: 6;
+  padding: 8px 16px;
+  font-size: 12.5px;
+  color: var(--ink);
+  background: rgba(7, 12, 20, 0.82);
+  border: 1px solid var(--panel-brd);
+  border-radius: 999px;
+  backdrop-filter: var(--panel-blur);
+  box-shadow: 0 6px 22px rgba(0, 0, 0, 0.5);
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.4s ease, transform 0.4s ease;
+}
+.gr-hint.is-on {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .gr-story-card {
+    transition: opacity var(--story-fade, 650ms) ease;
+    transform: none;
+  }
+  .gr-story-card.is-on {
+    transform: none;
+  }
 }
 
 /* ── Restyle MapLibre chrome to match ─────────────────────────────────────── */

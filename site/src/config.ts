@@ -159,7 +159,7 @@ export const CONFIG = {
         year: 1884,
         lonLat: [-79.394, 43.664], // McCaul's Pond site, now under Hart House
         title: "McCaul's Pond, drained",
-        text: "In 1859 the University dammed Taddle Creek to form McCaul's Pond. Fouled by sewage, it was drained in 1884 and the creek sealed underground — its site now lies beneath Hart House.",
+        text: "In 1859 the University dammed Taddle Creek to form McCaul's Pond. Fouled by sewage, it was drained in 1884 and the creek sealed underground. Its site now lies beneath Hart House.",
         source: "University of Toronto Magazine",
       },
       {
@@ -236,23 +236,29 @@ export const CONFIG = {
     pulse: { color: "#ffe2a8", width: 2.4, blur: 2, maxOpacity: 0.85, years: 5 }, // join flash
   },
 
-  // INTRO SEQUENCE — fullscreen open: start at the headwaters end with the whole network
-  // glowing at the earliest year, glide south along the creeks, land on the lake-anchored
-  // default framing, then autoplay begins. Skippable (any input / Skip button); skipped
-  // entirely under prefers-reduced-motion; runs once per browser session.
-  // ✏️ THE CAPTION COPY LIVES HERE (Leo's voice — edit in place).
-  intro: {
+  // STORY MODE — the narrated first-visit experience. A chaptered script (data file below)
+  // plays across the whole timeline once, then ENDS instead of looping: the map opens at the
+  // headwaters with the full network glowing, glides south (this glide is Act I), and each
+  // card holds while the year advances under it. The burial act is held longer so the climax
+  // slows down. At the end it stops on the closing card with Replay and Explore buttons.
+  // Repeat visits in the same session go straight to explore mode (the fast autoplay loop).
+  // ✏️ THE SCRIPT COPY LIVES IN site/public/data/story.json (year, act, text). Edit it there.
+  story: {
     enabled: true,
-    startCenter: [-79.421, 43.682] as LonLat, // the headwaters end (Wychwood/Christie uplands)
-    startZoomDelta: 0.55, // start tighter than the landing frame, then ease out while gliding
-    midCenter: [-79.4138, 43.6538] as LonLat, // mid-glide waypoint (Trinity Bellwoods corridor)
-    seg1Ms: 10000, // headwaters → mid-corridor
-    seg2Ms: 11000, // mid-corridor → the lake-anchored landing frame
-    captionFadeMs: 700,
-    captions: [
-      "I fish Toronto's rivers. Most of what's left runs through concrete or barely runs at all. I wanted to know what was here before.",
-      "The old maps answered: dozens of creeks once ran to the lake. The growing city buried them, one by one.",
-    ],
+    scriptUrl: "data/story.json",
+    // Act I camera glide, headwaters to the lake-anchored landing frame.
+    glide: {
+      startCenter: [-79.421, 43.682] as LonLat, // headwaters (Wychwood / Christie uplands)
+      startZoomDelta: 0.55, // open a touch tighter than the landing, then ease out
+      midCenter: [-79.4138, 43.6538] as LonLat, // mid-glide waypoint (Trinity Bellwoods)
+    },
+    // Per-act card dwell in ms: how long each card holds while the year advances beneath it.
+    // Act III (the burial climax) is held longest so that stretch gets proportionally more
+    // time. Sum across the ~16 year-cards lands near 90 seconds of runtime.
+    actDwellMs: { I: 6000, II: 4600, III: 6400, IV: 4800, V: 5200 },
+    cardFadeMs: 650, // card crossfade + rise
+    hint: "Drag the timeline. Hover a creek.", // one-time interaction hint on entering explore
+    labels: { skip: "Skip to map", replay: "Replay", next: "Next", explore: "Explore the map" },
   },
 
   // ── Time animation ───────────────────────────────────────────────────────────

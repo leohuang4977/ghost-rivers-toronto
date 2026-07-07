@@ -199,6 +199,23 @@ http://localhost:5173 (hard-reload with Ctrl+Shift+R after re-tiling).
   (CC-BY requires attribution; creek permission is citation-conditional). docs/ keeps full
   citations.
 
+- **Phase 5: narrated STORY MODE + share preview.** (1) STORY vs EXPLORE split (`src/story.ts`,
+  supersedes the old intro glide, which is now Act I). First visit per session runs a chaptered
+  script ONCE across the whole timeline, then STOPS (no loop) on a closing card with Replay and
+  "Explore the map" buttons. Each card holds while the year advances beneath it. The burial act
+  (III) is held longest so the climax slows (1884 crawls at 0.8 years per second, the dead
+  1950 to 2000 gap sweeps at 10.4). Chrome, beats, and map interaction are off during the story
+  (`.gr-storying`), restored on explore. "Skip to map" jumps out at any point. reduced-motion
+  turns it into advance-on-click cards with no glide. Explore mode is the old fast autoplay
+  loop with all chrome. First-visit is tracked in `sessionStorage` (`gr-story-done`), with a
+  storage-blocked fallback. (2) THE SCRIPT lives verbatim in `site/public/data/story.json`
+  (year, act, text). Pacing knobs (per-act dwell, card fade, glide, hint, button labels) are in
+  `CONFIG.story`. The card sits lower-third left of centre, mono year kicker over a serif line.
+  (3) SHARE PREVIEW: Open Graph and Twitter `summary_large_image` tags in `index.html`, image
+  at `site/public/og-card.png` (1200x630, a real-geometry placeholder Leo can overwrite with a
+  live screenshot at the same path). (4) WRITING RULE: no em dashes or semicolons in any
+  user-facing string. Cleaned the beat text, About panel, title, tooltips, and population.json.
+
 - **Audience-feedback pass.** (1) VARIABLE PACE: autoplay advances a normalized progress
   mapped through `timeline.pace` (piecewise-linear anchors derived from the burial
   distribution — NOTHING is buried after 1949, so the 1950–2017 tail compresses to ~10% of
@@ -209,12 +226,13 @@ http://localhost:5173 (hard-reload with Ctrl+Shift+R after re-tiling).
   volumes (no citable tabulated series; Harris 1899–1913 covers a sliver) — don't fake it.
   (3) CUMULATIVE CITY LIMIT: see the annexation entry above.
 
-Main config knobs (all in `site/src/config.ts`): timeline (`autoplayDurationMs`,
-`fadeWindowYears`, `endYear`, `endHoldMs`, `pace`), city-growth curve, flare, `streetLabels`,
-`survivor`, `beats`, `flow`, `eras`, `sparkline`, `population` (dots unit/cols + figures in
-the data file), `annexation` (fadeYears + line/glow/fill/pulse), creek styles, hillshade/city
-opacities, framing. Terrain shape dials, `city.water_smoothing`, and the `annexation` pipeline
-section are in `pipeline/config.yaml`.
+Main config knobs (all in `site/src/config.ts`): `story` (script pacing, glide, labels; script
+prose in `site/public/data/story.json`), timeline (`autoplayDurationMs`, `fadeWindowYears`,
+`endYear`, `endHoldMs`, `pace`), city-growth curve, flare, `streetLabels`, `survivor`, `beats`,
+`flow`, `eras`, `sparkline`, `population` (dots unit/cols + figures in the data file),
+`annexation` (fadeYears + line/glow/fill/pulse), creek styles, hillshade/city opacities,
+framing. Terrain shape dials, `city.water_smoothing`, and the `annexation` pipeline section are
+in `pipeline/config.yaml`. WRITING: keep em dashes and semicolons out of user-facing strings.
 
 ## Next: mobile pass
 
