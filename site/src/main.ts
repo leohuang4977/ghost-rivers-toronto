@@ -7,6 +7,7 @@ import { CONFIG } from "./config";
 import { buildStyle } from "./style";
 import { createTimeline } from "./timeline";
 import { createLabels } from "./labels";
+import { createBeats } from "./beats";
 import { createUI } from "./ui";
 
 // Self-contained PMTiles protocol (no tile server, no vendor token).
@@ -75,9 +76,15 @@ if (vigEl) {
 
 map.on("error", (e) => console.error("[ghost-rivers] map error:", e.error));
 
+// Dev-only debug handles (namespaced so they don't collide with the id="map" element global).
+if (import.meta.env.DEV) (window as unknown as Record<string, unknown>).__gr = { map };
+
 map.on("load", async () => {
   const [timeline, labels] = await Promise.all([createTimeline(map), createLabels(map)]);
-  createUI(map, timeline, labels);
+  const beats = createBeats(map, timeline);
+  createUI(map, timeline, labels, beats);
+  if (import.meta.env.DEV)
+    Object.assign((window as unknown as Record<string, unknown>).__gr as object, { timeline, beats });
   console.info("[ghost-rivers] interactive piece ready");
 });
 

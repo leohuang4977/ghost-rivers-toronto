@@ -3,7 +3,7 @@
 // creeks are static (handled by their own layers). Autoplay loops 1802 → 2017.
 import type { Map as MLMap, ExpressionSpecification } from "maplibre-gl";
 import { CONFIG } from "./config";
-import { DATED_CREEK_LAYERS, FLARE_LAYERS } from "./style";
+import { DATED_CREEK_LAYERS, FLARE_LAYERS, SURVIVOR_LAYERS } from "./style";
 
 type Meta = { years: (number | null)[]; min_year: number; max_year: number; undated: number };
 
@@ -14,6 +14,8 @@ export type TimelineController = {
   setYear(y: number, pauseNow?: boolean): void;
   getYear(): number;
   isPlaying(): boolean;
+  holdFor(ms: number): void; // dwell in place (keep playing state) for ms — used by narrative beats
+  releaseHold(): void; // cut a dwell short and resume advancing immediately
   minYear: number;
   maxYear: number;
   onUpdate(cb: (year: number, count: number, playing: boolean) => void): void;
@@ -40,7 +42,8 @@ export async function createTimeline(map: MLMap): Promise<TimelineController> {
   let playing = t.autoplay && !reduced;
   let lastApplied = NaN;
   let holdUntil: number | null = null;
-  let updateCb: ((y: number, c: number, p: boolean) => void) | null = null;
+  let holdThenLoop = false; // true only for the end-of-timeline hold (loop back on expiry)
+  const updateCbs: ((y: number, c: number, p: boolean) => void)[] = [];
 
   function countAt(y: number): number {
     let n = undatedCount;
@@ -81,6 +84,14 @@ export async function createTimeline(map: MLMap): Promise<TimelineController> {
     return Math.pow(Math.max(0, Math.min(1, tt)), g.easeExp);
   }
 
+  // MOVE 3 — survivor factor 0→1 as Y goes fadeInFromYear→fullByYear (ease-in). Near 0 for
+  // most of the animation so the warm survivor glow only reads at the very end.
+  function survivorFactor(y: number): number {
+    const s = CONFIG.survivor;
+    const tt = (y - s.fadeInFromYear) / (s.fullByYear - s.fadeInFromYear);
+    return Math.pow(Math.max(0, Math.min(1, tt)), s.easeExp);
+  }
+
   function apply(y: number) {
     // creek fades
     for (const { id, base } of DATED_CREEK_LAYERS) {
@@ -90,6 +101,11 @@ export async function createTimeline(map: MLMap): Promise<TimelineController> {
     for (const { id, max } of FLARE_LAYERS) {
       if (map.getLayer(id)) map.setPaintProperty(id, "line-opacity", flareExpr(y, max));
     }
+    // survivor glow — warm layers ramp in over the daylighted creeks as the end approaches
+    const sf = survivorFactor(y);
+    for (const { id, base } of SURVIVOR_LAYERS) {
+      if (map.getLayer(id)) map.setPaintProperty(id, "line-opacity", base * sf);
+    }
     // the city grows in as the creeks die
     const g = CONFIG.cityGrowth;
     const cf = cityFactor(y);
@@ -98,7 +114,7 @@ export async function createTimeline(map: MLMap): Promise<TimelineController> {
     if (map.getLayer("streets")) map.setPaintProperty("streets", "line-opacity", streetOp);
     if (map.getLayer("parks")) map.setPaintProperty("parks", "fill-opacity", parkOp);
 
-    updateCb?.(y, countAt(y), playing);
+    for (const cb of updateCbs) cb(y, countAt(y), playing);
   }
 
   let last = performance.now();
@@ -107,15 +123,18 @@ export async function createTimeline(map: MLMap): Promise<TimelineController> {
     last = now;
     if (playing) {
       if (holdUntil != null) {
+        // dwelling in place — either the end-of-timeline hold (loop back) or a beat dwell
         if (now >= holdUntil) {
-          year = minYear;
+          if (holdThenLoop) year = minYear;
           holdUntil = null;
+          holdThenLoop = false;
         }
       } else {
         year += (maxYear - minYear) * (dt / t.autoplayDurationMs);
         if (year >= maxYear) {
           year = maxYear;
           holdUntil = now + END_HOLD_MS;
+          holdThenLoop = true;
         }
       }
     }
@@ -135,6 +154,7 @@ export async function createTimeline(map: MLMap): Promise<TimelineController> {
     play() {
       playing = true;
       holdUntil = null;
+      holdThenLoop = false;
       last = performance.now();
     },
     pause() {
@@ -143,16 +163,33 @@ export async function createTimeline(map: MLMap): Promise<TimelineController> {
     toggle() {
       playing = !playing;
       holdUntil = null;
+      holdThenLoop = false;
       last = performance.now();
-      updateCb?.(year, countAt(year), playing);
+      for (const cb of updateCbs) cb(year, countAt(year), playing);
     },
     setYear(y, pauseNow = true) {
       if (pauseNow) playing = false;
       holdUntil = null;
+      holdThenLoop = false;
       year = Math.max(minYear, Math.min(maxYear, y));
     },
+    // Dwell in place for `ms` without changing the play/pause state (a narrative-beat pause).
+    // Only takes effect while playing and not already holding, so it never stacks or fights
+    // the end-of-timeline hold.
+    holdFor(ms: number) {
+      if (playing && holdUntil == null) {
+        holdUntil = performance.now() + ms;
+        holdThenLoop = false;
+      }
+    },
+    releaseHold() {
+      if (!holdThenLoop) {
+        holdUntil = null;
+        last = performance.now();
+      }
+    },
     onUpdate(cb) {
-      updateCb = cb;
+      updateCbs.push(cb);
       apply(year);
     },
   };

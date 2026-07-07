@@ -105,9 +105,9 @@ everything (creeks + hillshade + city → tiles), steps cache on inputs/outputs.
 
 Vite + TS. Key files: `src/config.ts` (ALL tuning knobs live here), `src/style.ts` (MapLibre
 style + layer stack), `src/timeline.ts` (the animation/year engine), `src/labels.ts`,
-`src/ui.ts` (timeline bar, layers panel, legend, title), `src/main.ts` (map + dark-styled
-controls + wiring), `src/style.css`. Run: `cd site && npm run dev` → http://localhost:5173
-(hard-reload with Ctrl+Shift+R after re-tiling).
+`src/beats.ts` (narrative-beat pins + caption cards), `src/ui.ts` (timeline bar, layers panel,
+legend, title), `src/main.ts` (map + dark-styled controls + wiring), `src/style.css`. Run:
+`cd site && npm run dev` → http://localhost:5173 (hard-reload with Ctrl+Shift+R after re-tiling).
 
 ## Current state — DONE and committed on `main`
 
@@ -127,20 +127,25 @@ controls + wiring), `src/style.css`. Run: `cd site && npm run dev` → http://lo
   timeline year `Y`), burial flares (a brief bright pulse the moment each creek's year passes,
   then fade to dark), and real self-hosted-glyph street labels for major arterials (a symbol
   layer off the Centreline `street_labels`, wired into the layer toggle panel).
+- **Phase 4 Tier 2** — (1) NARRATIVE BEATS: 3 curated, fact-checked story moments (Fort York /
+  the name, 1793; McCaul's Pond drained under Hart House, 1884; the Crawford St bridge buried
+  whole under Trinity Bellwoods, "1960s"). Each is a warm map pin + a dismissable caption card;
+  autoplay dwells briefly and gently pans to an off-screen pin when it hits a beat year;
+  scrubbing shows/hides by year. Content + dates were web-researched and adversarially
+  verified; wording is kept general where the record is (Crawford burial only ever dated "the
+  1960s"). Toggled by "Story notes" in the layers panel. (2) SURVIVOR GLOW: a warm/white glow
+  (`survivor-*` layers, filtered on `year_last_seen == endYear`) that ramps in over the ~9
+  daylighted creeks only in the final decades (ease-in from 1980), so the ending reads "these
+  few survived." Legend gained a "Still visible today" swatch.
 
 Main config knobs (all in `site/src/config.ts`): timeline (`autoplayDurationMs`,
 `fadeWindowYears`, `endYear`), city-growth curve, flare duration/intensity, `streetLabels`
-(size/minzoom), creek hero/rest/undated styles, hillshade/city opacities, framing. Terrain
-shape dials (smoothing, z_factor) are in `pipeline/config.yaml`.
+(size/minzoom), `survivor` (fade-in years + warm glow spec), `beats` (autoPauseMs /
+showWindowYears / pan knobs / the curated `items`), creek hero/rest/undated styles,
+hillshade/city opacities, framing. Terrain shape dials are in `pipeline/config.yaml`.
 
-## Next: Phase 4 Tier 2, then Tier 3
+## Next: Phase 4 Tier 3
 
-- **Tier 2** — (1) NARRATIVE BEATS: 2–3 curated, factual story moments that surface at their
-  year (e.g. Crawford St bridge buried under Trinity Bellwoods; Taddle Creek's pond under Hart
-  House / U of T). Keep captions short and verifiable; if unsure of a date/detail, keep it
-  general rather than inventing. (2) SURVIVOR GLOW: give the 2017/daylighted creeks a
-  distinct warmer/whiter glow that reads near the end of the timeline, so the ending lands as
-  "these few survived."
 - **Tier 3 (polish)** — flowing-water motion in the creek glow; a burial-rate sparkline under
   the year (the wave clusters ~1880s–1930s); era shortcut buttons (1850/1900/1950/today);
   click-to-focus a creek (extend the hover tooltip).

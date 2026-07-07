@@ -9,6 +9,18 @@
 
 export type LonLat = [number, number];
 
+// A curated narrative beat: a factual story moment that surfaces at its year.
+export interface Beat {
+  id: string;
+  year: number; // the timeline year it surfaces at (must be within the timeline range)
+  lonLat: LonLat; // where it happened (map pin)
+  title: string;
+  text: string; // 1–2 short, verifiable sentences
+  label?: string; // displayed date tag, if it differs from `year` (e.g. "1960s" when the
+  // exact year is uncertain, or "1793" for an event placed at the timeline's start)
+  source?: string; // short attribution shown small under the text
+}
+
 export const CONFIG = {
   // ── Framing (default + "reset view" target) ─────────────────────────────────
   camera: {
@@ -87,6 +99,67 @@ export const CONFIG = {
       glow: { color: "#5f7482", width: 6, blur: 4, opacity: 0.22 },
       core: { color: "#c3d0d8", width: 1.1, blur: 0.3, opacity: 0.5 },
     },
+  },
+
+  // MOVE 3 (Tier 2) — SURVIVOR GLOW. The ~9 creeks dated `endYear` (still-visible /
+  // daylighted) glow like every other creek early on; near the end of the timeline a
+  // distinct WARMER/WHITER glow ramps in over them, so the ending reads "these few
+  // survived." A separate set of layers, driven by the timeline, filtered on the survivor
+  // year. It should only read near the end — ease-in, invisible for most of the animation.
+  survivor: {
+    fadeInFromYear: 1980, // warm glow starts appearing after this year …
+    fullByYear: 2017, // … reaching full strength at the end
+    easeExp: 2.6, // >1 = ease-in: stays hidden, blooms only in the final years
+    halo: { color: "#ffcf8f", width: 21, blur: 18, opacity: 0.55 }, // warm amber bloom
+    mid: { color: "#ffe6c0", width: 5.2, blur: 3.0, opacity: 0.82 }, // warm cream
+    core: { color: "#fffdf7", width: 1.9, blur: 0.4, opacity: 1.0 }, // warm-white hot core
+  },
+
+  // NARRATIVE BEATS (Tier 2) — 2–3 curated, factual story moments. Each surfaces at its
+  // `year` as a map pin + a short caption card; autoplay dwells briefly when it hits a beat
+  // year; scrubbing shows/hides by year. Quiet by design — enrich, don't interrupt.
+  beats: {
+    autoPauseMs: 2600, // autoplay dwells this long when it reaches a beat year (0 = no pause)
+    showWindowYears: 16, // card stays up while the current year is within this window past `year`
+    fadeMs: 450, // card + pin fade in/out
+    pin: { color: "#ffd9a0", size: 13 }, // warm pin, matches the survivor palette
+    // When a beat surfaces during autoplay, gently ease the camera to it — but only if the pin
+    // is near/outside the viewport edge (so in-frame beats don't jostle the scene needlessly).
+    flyToOnBeat: true,
+    flyMs: 900,
+    flyEdgeFrac: 0.22, // pan only if the pin sits within this fraction of the viewport edge
+    // Content is curated + fact-checked (dates/locations verified against Lost Rivers Toronto,
+    // U of T Magazine, Heritage Toronto, Wikipedia et al.). Captions stay general where the
+    // record is uncertain (e.g. the Crawford bridge burial is only ever dated "the 1960s").
+    // `year` = when it surfaces on the timeline; `label` overrides the shown date tag.
+    items: [
+      {
+        id: "fort-york",
+        year: 1802, // opens the story at the start of the timeline
+        label: "1793",
+        lonLat: [-79.4065, 43.6385], // Fort York, at the creek mouth
+        title: "Named for the garrison",
+        text: "The creek takes its name from Fort York, the British garrison built at its mouth in 1793. Its steep ravine made a natural defensive edge for the fort.",
+        source: "Lost Rivers Toronto · Friends of Fort York",
+      },
+      {
+        id: "mccauls-pond",
+        year: 1884,
+        lonLat: [-79.394, 43.664], // McCaul's Pond site, now under Hart House
+        title: "McCaul's Pond, drained",
+        text: "In 1859 the University dammed Taddle Creek to form McCaul's Pond. Fouled by sewage, it was drained in 1884 and the creek sealed underground — its site now lies beneath Hart House.",
+        source: "University of Toronto Magazine",
+      },
+      {
+        id: "crawford-bridge",
+        year: 1966, // burial only ever dated to "the 1960s" — placed at the end of that era
+        label: "1960s",
+        lonLat: [-79.4165, 43.6468], // Crawford St ravine crossing, Trinity Bellwoods
+        title: "A bridge buried whole",
+        text: "Crawford Street crossed the Garrison ravine on a concrete bridge. It was never torn down: in the 1960s the ravine was filled with earth from the Bloor subway dig, and the span still lies buried up to its deck under Trinity Bellwoods Park.",
+        source: "Heritage Toronto",
+      },
+    ] as Beat[],
   },
 
   // ── Time animation ───────────────────────────────────────────────────────────

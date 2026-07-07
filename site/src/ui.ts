@@ -3,6 +3,7 @@
 import type { Map as MLMap, IControl } from "maplibre-gl";
 import type { TimelineController } from "./timeline";
 import type { LabelsController } from "./labels";
+import type { BeatsController } from "./beats";
 import { CREEK_LAYER_IDS, STREET_LABEL_ID } from "./style";
 
 function el(tag: string, cls?: string, html?: string): HTMLElement {
@@ -16,7 +17,12 @@ function domControl(element: HTMLElement): IControl {
   return { onAdd: () => element, onRemove: () => element.remove() };
 }
 
-export function createUI(map: MLMap, timeline: TimelineController, labels: LabelsController): void {
+export function createUI(
+  map: MLMap,
+  timeline: TimelineController,
+  labels: LabelsController,
+  beats: BeatsController,
+): void {
   // ── Title (top-left) ─────────────────────────────────────────────────────────
   document.body.appendChild(
     el(
@@ -83,6 +89,7 @@ export function createUI(map: MLMap, timeline: TimelineController, labels: Label
     { label: "Water", ids: ["water"] },
     { label: "Terrain", ids: ["hillshade"] },
     { label: "Labels", ids: [], cb: (on) => labels.setVisible(on) },
+    { label: "Story notes", ids: [], cb: (on) => beats.setVisible(on) },
   ];
 
   const panel = el("div", "gr-panel gr-collapsed maplibregl-ctrl");
@@ -109,6 +116,7 @@ export function createUI(map: MLMap, timeline: TimelineController, labels: Label
     `<div class="lg-h">Legend</div>
      <div class="lg-row"><span class="sw sw-hero"></span>Garrison Creek (hero)</div>
      <div class="lg-row"><span class="sw sw-rest"></span>Other buried creeks</div>
+     <div class="lg-row"><span class="sw sw-survivor"></span>Still visible today</div>
      <div class="lg-row"><span class="sw sw-undated"></span>Date unknown</div>
      <div class="lg-row"><span class="sw sw-park"></span>Parks · <span class="sw sw-ravine"></span> Ravines</div>`,
   );

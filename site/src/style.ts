@@ -40,6 +40,7 @@ function glowLayer(
   id: string,
   s: GlowSpec,
   filter: FilterSpecification,
+  startHidden = false, // survivor layers start at 0 and are ramped in by the timeline
 ): LayerSpecification {
   return {
     id,
@@ -52,7 +53,7 @@ function glowLayer(
       "line-color": s.color,
       "line-width": byZoom(s.width * k),
       "line-blur": byZoom(s.blur * k),
-      "line-opacity": baseOpacity(s.opacity),
+      "line-opacity": startHidden ? 0 : baseOpacity(s.opacity),
     },
   };
 }
@@ -89,6 +90,8 @@ function flareLayer(id: string, s: { color: string; width: number; blur: number 
 const HERO_DATED: FilterSpecification = ["all", ["==", ["get", "hero"], 1], ["==", ["get", "has_year"], 1]];
 const REST_DATED: FilterSpecification = ["all", ["!=", ["get", "hero"], 1], ["==", ["get", "has_year"], 1]];
 const UNDATED: FilterSpecification = ["==", ["get", "has_year"], 0];
+// Survivors: creeks whose last-mapped year is the timeline end (still visible / daylighted).
+const SURVIVOR: FilterSpecification = ["all", ["==", ["get", "has_year"], 1], ["==", ["get", "year_last_seen"], CONFIG.timeline.endYear]];
 
 // The six dated creek glow layers + their full-visibility base opacity, for the timeline.
 export const DATED_CREEK_LAYERS: { id: string; base: number }[] = [
@@ -106,13 +109,22 @@ export const FLARE_LAYERS: { id: string; max: number }[] = [
   { id: "flare-core", max: CONFIG.flare.core.maxOpacity },
 ];
 
+// The three survivor-glow layers + their full base opacity. The timeline ramps these from
+// 0 up to `base` as the year approaches the end, giving the survivors a distinct warm glow.
+export const SURVIVOR_LAYERS: { id: string; base: number }[] = [
+  { id: "survivor-halo", base: baseOpacity(CONFIG.survivor.halo.opacity) },
+  { id: "survivor-mid", base: baseOpacity(CONFIG.survivor.mid.opacity) },
+  { id: "survivor-core", base: baseOpacity(CONFIG.survivor.core.opacity) },
+];
+
 export const STREET_LABEL_ID = "street-labels";
 
-// All creek layer ids (for the layer-toggle panel), incl. flare + the invisible hover target.
+// All creek layer ids (for the layer-toggle panel), incl. flare + survivor + the hover target.
 export const CREEK_LAYER_IDS = [
   "undated-glow", "undated-core",
   ...DATED_CREEK_LAYERS.map((l) => l.id),
   "flare-bloom", "flare-core",
+  ...SURVIVOR_LAYERS.map((l) => l.id),
   "creek-hit",
 ];
 
@@ -197,6 +209,11 @@ export function buildStyle(): StyleSpecification {
       // burial flares — bright pulse over a creek at its moment of burial (timeline-driven)
       flareLayer("flare-bloom", CONFIG.flare.bloom),
       flareLayer("flare-core", CONFIG.flare.core),
+      // survivor glow — warm/white glow that blooms over the daylighted creeks near the end
+      // (start hidden; the timeline ramps their opacity in as Y approaches the end year)
+      glowLayer("survivor-halo", CONFIG.survivor.halo, SURVIVOR, true),
+      glowLayer("survivor-mid", CONFIG.survivor.mid, SURVIVOR, true),
+      glowLayer("survivor-core", CONFIG.survivor.core, SURVIVOR, true),
       // invisible wide line on top — a generous hover target for the creek tooltip
       {
         id: "creek-hit",
