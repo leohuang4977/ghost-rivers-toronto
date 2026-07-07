@@ -425,6 +425,99 @@ body {
   height: 11px;
   background: #183530;
 }
+.sw-annex {
+  background: #d9ad61;
+  box-shadow: 0 0 5px #e6c079;
+}
+
+/* ── About & sources (Part 2) ─────────────────────────────────────────────── */
+.gr-about-btn {
+  position: absolute;
+  top: 82px;
+  left: 18px;
+  z-index: 4;
+  padding: 0;
+  background: none;
+  border: none;
+  border-bottom: 1px dotted var(--ink-dim);
+  color: var(--ink-dim);
+  font-size: 11.5px;
+  letter-spacing: 0.02em;
+  cursor: pointer;
+}
+.gr-about-btn:hover {
+  color: var(--ink);
+  border-bottom-color: var(--ink);
+}
+.gr-about-card {
+  position: fixed;
+  left: 18px;
+  top: 108px;
+  z-index: 8;
+  width: min(430px, calc(100vw - 36px));
+  max-height: 74vh;
+  overflow-y: auto;
+  padding: 16px 20px 18px;
+  background: rgba(6, 11, 18, 0.96);
+  border: 1px solid var(--panel-brd);
+  border-radius: 12px;
+  backdrop-filter: var(--panel-blur);
+  box-shadow: 0 14px 44px rgba(0, 0, 0, 0.6);
+}
+.gr-about-card h2 {
+  margin: 0 0 8px;
+  font-size: 16px;
+  font-weight: 600;
+  color: #eaf3fa;
+}
+.gr-about-card h3 {
+  margin: 15px 0 5px;
+  font-size: 10.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--accent);
+}
+.gr-about-card p {
+  margin: 0 0 4px;
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: var(--ink);
+}
+.gr-about-card ul {
+  margin: 0;
+  padding-left: 16px;
+}
+.gr-about-card li {
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--ink);
+  margin-bottom: 5px;
+}
+.gr-about-card b {
+  color: #eaf3fa;
+  font-weight: 600;
+}
+.gr-about-lic {
+  margin-top: 14px !important;
+  padding-top: 10px;
+  border-top: 1px solid var(--panel-brd);
+  font-size: 11px !important;
+  color: var(--ink-dim) !important;
+}
+.gr-about-close {
+  position: absolute;
+  top: 9px;
+  right: 12px;
+  border: none;
+  background: none;
+  color: var(--ink-dim);
+  font-size: 20px;
+  line-height: 1;
+  cursor: pointer;
+}
+.gr-about-close:hover {
+  color: var(--ink);
+}
 
 /* ── Map labels (HTML markers) ────────────────────────────────────────────── */
 .map-label {

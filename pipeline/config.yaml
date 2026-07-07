@@ -86,6 +86,18 @@ city:
     chaikin_iters: 2           # corner-cutting passes → smooth curves (more = smoother)
     grow_m: 4                  # slight outward bias so the on-top water leaves no dark rim
 
+# ── Annexation boundaries (the real "city grows") ────────────────────────────
+# City of Toronto Historical Annexation Boundaries 1834–1967 (M. Fortin / U of T MDL,
+# Borealis DOI 10.5683/SP3/XN2NRW, CC-BY 4.0). Per-parcel annexation YEAR in `YrAnxd`.
+annexation:
+  source_shp: "data/raw/annexation/extracted/AnnexationBounds1967.shp"
+  year_field: "YrAnxd"
+  name_field: "Name"
+  date_field: "DtAnxd"
+  bbox_buffer_deg: 0.02        # keep/clip parcels to the study bbox plus this margin
+  min_area_m2: 30000           # drop street-only strips / slivers (true metres, EPSG:2958)
+  simplify_m: 8                # simplify the detailed archival boundaries for the web
+
 # ── Tiling ───────────────────────────────────────────────────────────────────
 tiles:
   creeks_minzoom: 10

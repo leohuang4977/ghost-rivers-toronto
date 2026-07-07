@@ -205,3 +205,40 @@
 *(e.g. `.../goads/<year>/`, `.../boulton_1858/`, `.../cane_1842/`, `.../wadsworth_unwin_1872/`, `.../city_engineer_plans/`)*
 
 > **Licensing flag (see licensing doc):** Mixed / per-institution — **NOT a blanket "pre-1900 = public domain."** TPL PD items are free for any purpose; City of Toronto Archives items are **not PD by age** and put the clearance burden on you. **Confidence: high.**
+
+---
+
+## 6. City of Toronto Historical Annexation Boundaries (1834–1967) — `annexation`
+
+The real "city grows" layer: year-tagged polygons of every area Toronto annexed, from the same
+author as the creek data (Marcel Fortin), digitized from the City of Toronto Archives
+annexation map.
+
+- DOI: https://doi.org/10.5683/SP3/XN2NRW (Borealis / U of T Dataverse)
+- File: `AnnexationBounds1967.zip` (~16 KB, Esri Shapefile, **EPSG:26917** NAD83/UTM17N)
+- Attributes: `YrAnxd` (annexation year, used), `Name`, `DtAnxd` (full date), `AnxNum`, `Id`.
+- Licence: **CC BY 4.0** (no login). Cite: *Fortin, Marcel, "City of Toronto Historical
+  Annexation Boundaries (1834–1967)", https://doi.org/10.5683/SP3/XN2NRW, Borealis.*
+- Underlying source: City of Toronto Archives annexation reference map (Series 727, Item 122) —
+  so the boundaries are **approximate to that map**, not a cadastral survey (say so in the About).
+
+**Acquisition (reproducible, no login):**
+```
+# from pipeline/, in WSL:
+mkdir -p data/raw/annexation
+FID=$(curl -sL "https://borealisdata.ca/api/datasets/:persistentId/?persistentId=doi:10.5683/SP3/XN2NRW" \
+      | python3 -c "import sys,json;print(json.load(sys.stdin)['data']['latestVersion']['files'][0]['dataFile']['id'])")
+curl -sL "https://borealisdata.ca/api/access/datafile/$FID" -o data/raw/annexation/AnnexationBounds1967.zip
+python3 -c "import zipfile;zipfile.ZipFile('data/raw/annexation/AnnexationBounds1967.zip').extractall('data/raw/annexation/extracted')"
+```
+
+**Build:** `pixi run annex` → `city_layers`-style processing in `annexation.py` reprojects to
+4326, clips to the study frame (+0.02° margin), drops street-only slivers (`min_area_m2`),
+simplifies, and writes `site/public/data/annexations.geojson` (per-parcel `year`/`name`/`date`).
+36 parcels survive in-frame across 21 annexation years, 1834–1967. The site loads that GeoJSON
+directly (no tiling needed) and fades each parcel in as the timeline year passes its `year`.
+
+**Drop path:** `pipeline/data/raw/annexation/` (raw is git-ignored; the built GeoJSON is committed).
+
+> **Licensing flag:** CC BY 4.0 — free reuse with attribution (commercial OK too). Boundaries are
+> the digitized Archives map, labelled approximate in the About panel. **Confidence: high.**

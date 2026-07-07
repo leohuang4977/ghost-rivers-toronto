@@ -61,7 +61,7 @@ map.addControl(
   new maplibregl.AttributionControl({
     compact: true,
     customAttribution:
-      "Historical Hydrography & Disappearing Rivers of Toronto (M. Fortin / U of T Map & Data Library) · Ontario lidar DTM · City of Toronto Open Data",
+      "Historical Hydrography, Disappearing Rivers & Annexation Boundaries of Toronto (M. Fortin / U of T Map & Data Library) · Ontario lidar DTM · City of Toronto Open Data · census population (Statistics Canada)",
   }),
   "bottom-right",
 );

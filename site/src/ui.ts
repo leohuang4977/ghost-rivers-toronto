@@ -6,7 +6,8 @@ import type { LabelsController } from "./labels";
 import type { BeatsController } from "./beats";
 import { CONFIG } from "./config";
 import { createPopulation } from "./population";
-import { CREEK_LAYER_IDS, STREET_LABEL_ID } from "./style";
+import { createAbout } from "./about";
+import { CREEK_LAYER_IDS, STREET_LABEL_ID, ANNEX_LAYER_IDS } from "./style";
 
 // Build a static burial-rate sparkline (bars) spanning minYear→maxYear, aligned over the
 // scrubber. Returns the SVG element and its moving playhead line (updated each frame).
@@ -80,6 +81,7 @@ export function createUI(
       `<h1>Ghost Rivers of Toronto</h1><p>The buried creeks beneath the modern city — watch them vanish as it grows.</p>`,
     ),
   );
+  createAbout(); // "About & sources" link + card (data sources + accuracy disclaimers)
 
   // ── Time scrubber (bottom center) ────────────────────────────────────────────
   const bar = el("div", "gr-timeline");
@@ -157,6 +159,7 @@ export function createUI(
   // ── Layers panel + legend (top-right, collapsible, collapsed by default) ─────
   const toggles: { label: string; ids: string[]; cb?: (on: boolean) => void }[] = [
     { label: "Creeks", ids: CREEK_LAYER_IDS },
+    { label: "City limits", ids: ANNEX_LAYER_IDS },
     { label: "Street grid", ids: ["streets"] },
     { label: "Street names", ids: [STREET_LABEL_ID] },
     { label: "Parks", ids: ["parks"] },
@@ -193,7 +196,8 @@ export function createUI(
      <div class="lg-row"><span class="sw sw-rest"></span>Other buried creeks</div>
      <div class="lg-row"><span class="sw sw-survivor"></span>Still visible today</div>
      <div class="lg-row"><span class="sw sw-undated"></span>Date unknown</div>
-     <div class="lg-row"><span class="sw sw-park"></span>Parks · <span class="sw sw-ravine"></span> Ravines</div>`,
+     <div class="lg-row"><span class="sw sw-park"></span>Parks · <span class="sw sw-ravine"></span> Ravines</div>
+     <div class="lg-row"><span class="sw sw-annex"></span>City limit (as annexed)</div>`,
   );
   body.appendChild(legend);
   panel.append(head, body);

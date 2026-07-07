@@ -3,7 +3,7 @@
 // creeks are static (handled by their own layers). Autoplay loops 1802 → 2017.
 import type { Map as MLMap, ExpressionSpecification } from "maplibre-gl";
 import { CONFIG } from "./config";
-import { DATED_CREEK_LAYERS, FLARE_LAYERS, SURVIVOR_LAYERS } from "./style";
+import { DATED_CREEK_LAYERS, FLARE_LAYERS, SURVIVOR_LAYERS, ANNEX_LAYERS } from "./style";
 
 type Meta = { years: (number | null)[]; min_year: number; max_year: number; undated: number };
 
@@ -93,6 +93,22 @@ export async function createTimeline(map: MLMap): Promise<TimelineController> {
     return Math.pow(Math.max(0, Math.min(1, tt)), s.easeExp);
   }
 
+  // PART 2 — annexation fade-in: each parcel ramps 0→1 over `fadeYears` once Y passes the
+  // year that parcel was annexed, so the city footprint sweeps outward district by district.
+  function annexExpr(y: number, base: number): ExpressionSpecification {
+    const w = CONFIG.annexation.fadeYears;
+    return [
+      "*",
+      base,
+      [
+        "case",
+        ["<", ["-", y, ["get", "year"]], 0], 0,
+        [">", ["-", y, ["get", "year"]], w], 1,
+        ["/", ["-", y, ["get", "year"]], w],
+      ],
+    ] as ExpressionSpecification;
+  }
+
   function apply(y: number) {
     // creek fades
     for (const { id, base } of DATED_CREEK_LAYERS) {
@@ -106,6 +122,12 @@ export async function createTimeline(map: MLMap): Promise<TimelineController> {
     const sf = survivorFactor(y);
     for (const { id, base } of SURVIVOR_LAYERS) {
       if (map.getLayer(id)) map.setPaintProperty(id, "line-opacity", base * sf);
+    }
+    // annexation footprint — parcels fade in as the year passes each annexation
+    if (CONFIG.annexation.show) {
+      for (const { id, prop, base } of ANNEX_LAYERS) {
+        if (map.getLayer(id)) map.setPaintProperty(id, prop, annexExpr(y, base));
+      }
     }
     // the city grows in as the creeks die
     const g = CONFIG.cityGrowth;

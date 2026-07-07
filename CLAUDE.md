@@ -53,6 +53,10 @@ City context (City of Toronto Open Data, downloaded) →
 `pipeline/data/raw/city_open_data/`: Centreline (streets), Green Spaces, Ravine bylaw,
 Neighbourhoods.
 
+Annexation boundaries — Historical Annexation Boundaries 1834–1967 (M. Fortin / U of T MDL,
+same author as the creeks), Borealis DOI `10.5683/SP3/XN2NRW`, CC-BY 4.0, per-parcel year
+(`YrAnxd`) → `pipeline/data/raw/annexation/` (re-download steps in `docs/DATA_SOURCES.md` §6).
+
 Historical map rasters are still optional polish (mostly need georeferencing); not used yet.
 
 CRS is inconsistent across sources and some names lie (e.g. `CL_WGS84_hydro_WAMS` is actually
@@ -98,24 +102,30 @@ Downtown v1 only — the Garrison + Taddle corridor. Study bbox WGS84
 - `city.pmtiles` — multi-layer: `streets` (Centreline road classes), `parks`, `ravines`,
   `water`, plus `street_labels` (arterials, for the Phase 4 symbol layer).
 - `labels.geojson`, `creeks_meta.json` — curated landmark labels and the per-feature year list.
+- `population.json` — old-City census figures for the population readout (easy to edit).
+- `annexations.geojson` — 36 annexation parcels (per-parcel `year`/`name`/`date`), loaded
+  directly (not tiled); the timeline fades each in as the "city grows."
 - Self-hosted glyph PBFs under `site/public/fonts/` (Noto Sans, SIL OFL) for MapLibre labels.
 
 ## The pipeline
 
 Config-driven (`pipeline/config.yaml`), runs via pixi tasks. `pixi run all` builds
-everything (creeks + hillshade + city → tiles), steps cache on inputs/outputs. Modules:
+everything (creeks + hillshade + city + annex → tiles), steps cache on inputs/outputs. Modules:
 `clean_creeks.py` (geometry + year join + `creeks_meta.json`), `hillshade.py`,
-`city_layers.py`, `tile.py`. Run order documented in `pipeline/README.md`.
+`city_layers.py`, `annexation.py` (→ `annexations.geojson`), `tile.py`. Run order documented in
+`pipeline/README.md`. Pipeline runs from Windows via WSL: `wsl bash -lc 'cd /mnt/c/.../pipeline
+&& "$HOME/.pixi/bin/pixi" run <task>'` (pixi is NOT on the login PATH — call it by absolute path).
 
 ## The site
 
 Vite + TS. Key files: `src/config.ts` (ALL tuning knobs live here), `src/style.ts` (MapLibre
 style + layer stack), `src/timeline.ts` (the animation/year engine), `src/labels.ts` (overlay
 labels + creek hover tooltip + click-to-focus), `src/beats.ts` (narrative-beat pins + caption
-cards), `src/flow.ts` (flowing-water current on the hero creek), `src/ui.ts` (timeline bar +
-sparkline + era buttons, layers panel, legend, title), `src/main.ts` (map + dark-styled
-controls + wiring), `src/style.css`. Run: `cd site && npm run dev` → http://localhost:5173
-(hard-reload with Ctrl+Shift+R after re-tiling).
+cards), `src/flow.ts` (flowing-water current on the hero creek), `src/population.ts` (the
+population readout), `src/about.ts` (About & sources panel), `src/ui.ts` (timeline bar +
+population + sparkline + era buttons, layers panel, legend, title), `src/main.ts` (map +
+dark-styled controls + wiring), `src/style.css`. Run: `cd site && npm run dev` →
+http://localhost:5173 (hard-reload with Ctrl+Shift+R after re-tiling).
 
 ## Current state — DONE and committed on `main`
 
@@ -158,18 +168,29 @@ controls + wiring), `src/style.css`. Run: `cd site && npm run dev` → http://lo
   water polygon into vector curves and `style.ts` draws water above the hillshade (see the DTM
   key-data-fact above).
 
+- **"City grows" — population + annexation** (both Y-synced). (1) POPULATION READOUT
+  (`population.ts`): a warm figure by the year readout that climbs with Y (old-City census,
+  web-researched + adversarially verified; animated old-City only — the entity that annexed its
+  neighbours — NOT the wider "1M by 1951" Metro figure; honesty caveat behind the ⓘ). (2)
+  ANNEXATION BOUNDARIES (`annexation.py` → `annexations.geojson`, `annex-*` layers): the REAL
+  city growth — 36 former-municipality parcels (Fortin dataset, all years verified) fade in
+  under the creek glow as Y passes each annexation year, so the footprint sweeps outward over
+  the dying creeks. "City limits" layer toggle; "About & sources" panel carries the
+  approximate-boundary disclaimer + all sources.
+
 Main config knobs (all in `site/src/config.ts`): timeline (`autoplayDurationMs`,
-`fadeWindowYears`, `endYear`), city-growth curve, flare duration/intensity, `streetLabels`,
-`survivor` (fade-in years + warm glow), `beats` (autoPauseMs / showWindowYears / pan / curated
-`items`), `flow` (current color/dash/speed), `eras`, `sparkline` (binYears/colors), creek
-hero/rest/undated styles, hillshade/city opacities, framing. Terrain shape dials and
-`city.water_smoothing` are in `pipeline/config.yaml`.
+`fadeWindowYears`, `endYear`), city-growth curve, flare, `streetLabels`, `survivor`, `beats`,
+`flow`, `eras`, `sparkline`, `population` (show + sparkline + colors; figures in the data file),
+`annexation` (show + fadeYears + line/glow/fill styling), creek styles, hillshade/city
+opacities, framing. Terrain shape dials, `city.water_smoothing`, and the `annexation` pipeline
+section are in `pipeline/config.yaml`.
 
 ## Next: deploy + mobile
 
-Phase 4 is complete (Tiers 1–3 + the shoreline fix). Whenever ready: **deploy to GitHub Pages**
-(the architecture is built for it, not yet done) and a quick **mobile-layout pass** (the
-timeline bar, beat cards, and panels are desktop-tuned).
+Phase 4 + the "city grows" layers are complete. Whenever ready: **deploy to GitHub Pages** (the
+architecture is built for it, not yet done) and a **mobile-layout pass** (the timeline bar now
+carries the year + population + sparkline + era buttons and is desktop-tuned; the About / beat /
+layers panels are too).
 
 ## Working notes
 

@@ -66,5 +66,11 @@ depends-on = ["creeks", "hillshade", "city"]
 inputs = ["src/ghost_rivers/tile.py", "src/ghost_rivers/config.py", "src/ghost_rivers/_util.py", "config.yaml", "data/processed/creeks_4326.geojson", "data/processed/hillshade_3857.tif", "data/interim/streets.geojson", "data/interim/street_labels.geojson", "data/interim/parks.geojson", "data/interim/ravines.geojson", "data/interim/water.geojson"]
 outputs = ["data/processed/creeks.pmtiles", "data/processed/hillshade.pmtiles", "data/processed/city.pmtiles"]
 
+[tasks.annex]
+cmd = "python -m ghost_rivers.annexation"        # annexation parcels -> annexations.geojson
+env = { PYTHONPATH = "src" }
+inputs = ["src/ghost_rivers/annexation.py", "src/ghost_rivers/config.py", "config.yaml", "data/raw/annexation/extracted/AnnexationBounds1967.shp"]
+outputs = ["../site/public/data/annexations.geojson"]
+
 [tasks.all]
-depends-on = ["creeks", "hillshade", "city", "tiles"]
+depends-on = ["creeks", "hillshade", "city", "tiles", "annex"]

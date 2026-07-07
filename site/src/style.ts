@@ -15,6 +15,8 @@ import { CONFIG } from "./config";
 const pmtiles = (rel: string) =>
   `pmtiles://${new URL(rel, document.baseURI).href}`;
 
+const assetUrl = (rel: string) => new URL(rel, document.baseURI).href;
+
 // Self-hosted glyphs: resolve the base, then append MapLibre's {fontstack}/{range}
 // placeholders literally (so they aren't URL-encoded).
 const glyphsUrl = () => `${new URL("fonts/", document.baseURI).href}{fontstack}/{range}.pbf`;
@@ -124,6 +126,15 @@ export const SURVIVOR_LAYERS: { id: string; base: number }[] = [
 
 export const STREET_LABEL_ID = "street-labels";
 
+// Annexation layers + the timeline-driven property/base for each. The timeline fades each in
+// per-feature as the year passes its `year` (the real "city grows"). ids also used for toggle.
+export const ANNEX_LAYERS: { id: string; prop: "fill-opacity" | "line-opacity"; base: number }[] = [
+  { id: "annex-fill", prop: "fill-opacity", base: CONFIG.annexation.fill.opacity },
+  { id: "annex-glow", prop: "line-opacity", base: CONFIG.annexation.glow.opacity },
+  { id: "annex-line", prop: "line-opacity", base: CONFIG.annexation.line.opacity },
+];
+export const ANNEX_LAYER_IDS = ANNEX_LAYERS.map((l) => l.id);
+
 // All creek layer ids (for the layer-toggle panel), incl. flare + survivor + the hover target.
 export const CREEK_LAYER_IDS = [
   "undated-glow", "undated-core",
@@ -145,6 +156,7 @@ export function buildStyle(): StyleSpecification {
       hillshade: { type: "raster", url: pmtiles("data/hillshade.pmtiles"), tileSize: 256 },
       creeks: { type: "vector", url: pmtiles("data/creeks.pmtiles") },
       city: { type: "vector", url: pmtiles("data/city.pmtiles") },
+      annex: { type: "geojson", data: assetUrl(CONFIG.annexation.dataUrl) },
     },
     layers: [
       { id: "background", type: "background", paint: { "background-color": CONFIG.darkBaseColor } },
@@ -201,6 +213,41 @@ export function buildStyle(): StyleSpecification {
           "text-halo-width": CONFIG.streetLabels.haloWidth,
           "text-halo-blur": 0.5,
           "text-opacity": CONFIG.streetLabels.opacity,
+        },
+      },
+      // annexation footprint — the real "city grows": former municipalities fade in as the
+      // year passes their annexation (timeline-driven opacity). UNDER the creek glow.
+      {
+        id: "annex-fill",
+        type: "fill",
+        source: "annex",
+        paint: {
+          "fill-color": CONFIG.annexation.fill.color,
+          "fill-opacity": 0,
+          "fill-antialias": true,
+        },
+      },
+      {
+        id: "annex-glow",
+        type: "line",
+        source: "annex",
+        layout: { "line-cap": "round", "line-join": "round" },
+        paint: {
+          "line-color": CONFIG.annexation.glow.color,
+          "line-width": CONFIG.annexation.glow.width,
+          "line-blur": CONFIG.annexation.glow.blur,
+          "line-opacity": 0,
+        },
+      },
+      {
+        id: "annex-line",
+        type: "line",
+        source: "annex",
+        layout: { "line-cap": "round", "line-join": "round" },
+        paint: {
+          "line-color": CONFIG.annexation.line.color,
+          "line-width": CONFIG.annexation.line.width,
+          "line-opacity": 0,
         },
       },
       // undated creeks — neutral, static, always visible
