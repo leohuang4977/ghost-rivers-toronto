@@ -8,6 +8,7 @@ import { buildStyle } from "./style";
 import { createTimeline } from "./timeline";
 import { createLabels } from "./labels";
 import { createBeats } from "./beats";
+import { createFlow } from "./flow";
 import { createUI } from "./ui";
 
 // Self-contained PMTiles protocol (no tile server, no vendor token).
@@ -80,8 +81,10 @@ map.on("error", (e) => console.error("[ghost-rivers] map error:", e.error));
 if (import.meta.env.DEV) (window as unknown as Record<string, unknown>).__gr = { map };
 
 map.on("load", async () => {
-  const [timeline, labels] = await Promise.all([createTimeline(map), createLabels(map)]);
+  const timeline = await createTimeline(map);
+  const labels = await createLabels(map, timeline);
   const beats = createBeats(map, timeline);
+  createFlow(map); // flowing-water current on the hero creek
   createUI(map, timeline, labels, beats);
   if (import.meta.env.DEV)
     Object.assign((window as unknown as Record<string, unknown>).__gr as object, { timeline, beats });

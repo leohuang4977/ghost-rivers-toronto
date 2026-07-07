@@ -18,6 +18,7 @@ export type TimelineController = {
   releaseHold(): void; // cut a dwell short and resume advancing immediately
   minYear: number;
   maxYear: number;
+  datedYears: number[]; // every creek's year_last_seen (sorted) — for the burial-rate sparkline
   onUpdate(cb: (year: number, count: number, playing: boolean) => void): void;
 };
 
@@ -149,6 +150,7 @@ export async function createTimeline(map: MLMap): Promise<TimelineController> {
   return {
     minYear,
     maxYear,
+    datedYears,
     getYear: () => year,
     isPlaying: () => playing,
     play() {

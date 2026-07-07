@@ -110,10 +110,12 @@ everything (creeks + hillshade + city → tiles), steps cache on inputs/outputs.
 ## The site
 
 Vite + TS. Key files: `src/config.ts` (ALL tuning knobs live here), `src/style.ts` (MapLibre
-style + layer stack), `src/timeline.ts` (the animation/year engine), `src/labels.ts`,
-`src/beats.ts` (narrative-beat pins + caption cards), `src/ui.ts` (timeline bar, layers panel,
-legend, title), `src/main.ts` (map + dark-styled controls + wiring), `src/style.css`. Run:
-`cd site && npm run dev` → http://localhost:5173 (hard-reload with Ctrl+Shift+R after re-tiling).
+style + layer stack), `src/timeline.ts` (the animation/year engine), `src/labels.ts` (overlay
+labels + creek hover tooltip + click-to-focus), `src/beats.ts` (narrative-beat pins + caption
+cards), `src/flow.ts` (flowing-water current on the hero creek), `src/ui.ts` (timeline bar +
+sparkline + era buttons, layers panel, legend, title), `src/main.ts` (map + dark-styled
+controls + wiring), `src/style.css`. Run: `cd site && npm run dev` → http://localhost:5173
+(hard-reload with Ctrl+Shift+R after re-tiling).
 
 ## Current state — DONE and committed on `main`
 
@@ -144,20 +146,30 @@ legend, title), `src/main.ts` (map + dark-styled controls + wiring), `src/style.
   daylighted creeks only in the final decades (ease-in from 1980), so the ending reads "these
   few survived." Legend gained a "Still visible today" swatch.
 
+- **Phase 4 Tier 3** — polish: (1) FLOWING WATER — a bright dashed "current" marches along the
+  hero creek (`flow.ts` rewrites `line-dasharray` each frame; opacity faded by the timeline so
+  it flows only where Garrison is still alive; off/hidden under reduced motion). (2) BURIAL-RATE
+  SPARKLINE — bars of creeks-last-mapped-per-bin under the year readout, aligned over the
+  scrubber with a moving playhead (peak bin ~1930). (3) ERA BUTTONS — 1850/1900/1950/Today jump
+  the timeline (keeping play state). (4) CLICK-TO-FOCUS — clicking a creek jumps the timeline to
+  the year it was last mapped (firing its burial flare) and pins a richer info card.
+
+- **Shoreline** — Lake Ontario's coast was de-pixelated: `city_layers.py` smooths the lidar
+  water polygon into vector curves and `style.ts` draws water above the hillshade (see the DTM
+  key-data-fact above).
+
 Main config knobs (all in `site/src/config.ts`): timeline (`autoplayDurationMs`,
-`fadeWindowYears`, `endYear`), city-growth curve, flare duration/intensity, `streetLabels`
-(size/minzoom), `survivor` (fade-in years + warm glow spec), `beats` (autoPauseMs /
-showWindowYears / pan knobs / the curated `items`), creek hero/rest/undated styles,
-hillshade/city opacities, framing. Terrain shape dials are in `pipeline/config.yaml`.
+`fadeWindowYears`, `endYear`), city-growth curve, flare duration/intensity, `streetLabels`,
+`survivor` (fade-in years + warm glow), `beats` (autoPauseMs / showWindowYears / pan / curated
+`items`), `flow` (current color/dash/speed), `eras`, `sparkline` (binYears/colors), creek
+hero/rest/undated styles, hillshade/city opacities, framing. Terrain shape dials and
+`city.water_smoothing` are in `pipeline/config.yaml`.
 
-## Next: Phase 4 Tier 3
+## Next: deploy + mobile
 
-- **Tier 3 (polish)** — flowing-water motion in the creek glow; a burial-rate sparkline under
-  the year (the wave clusters ~1880s–1930s); era shortcut buttons (1850/1900/1950/today);
-  click-to-focus a creek (extend the hover tooltip).
-
-Then, whenever ready: **deploy to GitHub Pages** (the architecture is built for it, not yet
-done) and a quick **mobile-layout pass**.
+Phase 4 is complete (Tiers 1–3 + the shoreline fix). Whenever ready: **deploy to GitHub Pages**
+(the architecture is built for it, not yet done) and a quick **mobile-layout pass** (the
+timeline bar, beat cards, and panels are desktop-tuned).
 
 ## Working notes
 

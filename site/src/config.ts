@@ -162,6 +162,35 @@ export const CONFIG = {
     ] as Beat[],
   },
 
+  // MOVE 4 (Tier 3) — FLOWING WATER: a thin bright current animates along the hero creek
+  // (Garrison) so the glow reads as living water, not a static line. A dashed "flow" line over
+  // the hero, its dashes marched along by an rAF; opacity is faded with the creek by the
+  // timeline so it only flows where the creek is still alive. Off under prefers-reduced-motion.
+  flow: {
+    color: "#eafcff",
+    width: 1.4,
+    blur: 0.6,
+    baseOpacity: 0.7,
+    dash: [0.25, 3.2], // [on, off] in line-widths — short bright ticks, long gaps
+    speedDashPerSec: 1.4, // dash-lengths advanced per second (the current's pace)
+  },
+
+  // Tier 3 — ERA shortcut buttons: jump the timeline to a moment without scrubbing.
+  eras: [
+    { label: "1850", year: 1850 },
+    { label: "1900", year: 1900 },
+    { label: "1950", year: 1950 },
+    { label: "Today", year: 2017 },
+  ],
+
+  // Tier 3 — BURIAL-RATE sparkline under the year readout: how many creeks were last mapped
+  // each year (the wave clusters ~1880s–1930s), with a playhead at the current year.
+  sparkline: {
+    binYears: 4, // group burials into bins this many years wide
+    color: "#5f8fb0", // bars
+    playheadColor: "#eaf7ff",
+  },
+
   // ── Time animation ───────────────────────────────────────────────────────────
   timeline: {
     autoplayDurationMs: 34000, // one full 1802 → 2017 cycle

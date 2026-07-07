@@ -4,7 +4,55 @@ import type { Map as MLMap, IControl } from "maplibre-gl";
 import type { TimelineController } from "./timeline";
 import type { LabelsController } from "./labels";
 import type { BeatsController } from "./beats";
+import { CONFIG } from "./config";
 import { CREEK_LAYER_IDS, STREET_LABEL_ID } from "./style";
+
+// Build a static burial-rate sparkline (bars) spanning minYear→maxYear, aligned over the
+// scrubber. Returns the SVG element and its moving playhead line (updated each frame).
+function buildSparkline(
+  years: number[],
+  minYear: number,
+  maxYear: number,
+): { svg: SVGSVGElement; playhead: SVGLineElement } {
+  const W = 1000;
+  const H = 100;
+  const bin = Math.max(1, CONFIG.sparkline.binYears);
+  const span = Math.max(1, maxYear - minYear);
+  const nbins = Math.ceil(span / bin);
+  const counts = new Array(nbins).fill(0);
+  for (const y of years) {
+    if (y < minYear || y > maxYear) continue;
+    counts[Math.min(nbins - 1, Math.floor((y - minYear) / bin))]++;
+  }
+  const maxCount = Math.max(1, ...counts);
+  const svgNS = "http://www.w3.org/2000/svg";
+  const svg = document.createElementNS(svgNS, "svg");
+  svg.setAttribute("class", "gr-spark");
+  svg.setAttribute("viewBox", `0 0 ${W} ${H}`);
+  svg.setAttribute("preserveAspectRatio", "none");
+  svg.style.setProperty("--spark", CONFIG.sparkline.color);
+  svg.style.setProperty("--spark-head", CONFIG.sparkline.playheadColor);
+  let bars = "";
+  for (let i = 0; i < nbins; i++) {
+    if (!counts[i]) continue;
+    const x = (i * bin / span) * W;
+    const w = Math.max(1.5, (bin / span) * W - 1);
+    const h = (counts[i] / maxCount) * H;
+    bars += `<rect x="${x.toFixed(1)}" y="${(H - h).toFixed(1)}" width="${w.toFixed(1)}" height="${h.toFixed(1)}" rx="1"></rect>`;
+  }
+  const g = document.createElementNS(svgNS, "g");
+  g.setAttribute("class", "gr-spark-bars");
+  g.innerHTML = bars;
+  svg.appendChild(g);
+  const playhead = document.createElementNS(svgNS, "line");
+  playhead.setAttribute("class", "gr-spark-playhead");
+  playhead.setAttribute("y1", "0");
+  playhead.setAttribute("y2", String(H));
+  playhead.setAttribute("x1", "0");
+  playhead.setAttribute("x2", "0");
+  svg.appendChild(playhead);
+  return { svg, playhead };
+}
 
 function el(tag: string, cls?: string, html?: string): HTMLElement {
   const e = document.createElement(tag);
@@ -48,10 +96,31 @@ export function createUI(
 
   const top = el("div", "gr-tl-top");
   top.append(yearOut, counter);
+
+  // burial-rate sparkline (under the year, aligned over the scrubber)
+  const { svg: spark, playhead } = buildSparkline(timeline.datedYears, timeline.minYear, timeline.maxYear);
+  const sparkWrap = el("div", "gr-spark-wrap");
+  sparkWrap.appendChild(spark);
+
+  // era shortcut buttons — jump the timeline without scrubbing
+  const eras = el("div", "gr-eras");
+  for (const e of CONFIG.eras) {
+    const b = el("button", "gr-era", e.label) as HTMLButtonElement;
+    b.addEventListener("click", () => timeline.setYear(e.year, false)); // jump, keep play state
+    eras.appendChild(b);
+  }
+
   const mid = el("div", "gr-tl-mid");
-  mid.append(top, slider);
+  mid.append(top, sparkWrap, slider, eras);
   bar.append(playBtn, mid);
   document.body.appendChild(bar);
+
+  const spanYears = Math.max(1, timeline.maxYear - timeline.minYear);
+  const updatePlayhead = (year: number) => {
+    const x = ((year - timeline.minYear) / spanYears) * 1000;
+    playhead.setAttribute("x1", x.toFixed(1));
+    playhead.setAttribute("x2", x.toFixed(1));
+  };
 
   let dragging = false;
   const setIcon = (playing: boolean) => {
@@ -76,6 +145,7 @@ export function createUI(
     yearOut.textContent = String(Math.round(year));
     counter.innerHTML = `<b>${count}</b> creeks still on the map`;
     if (!dragging) slider.value = String(Math.round(year));
+    updatePlayhead(year);
     setIcon(playing);
   });
 

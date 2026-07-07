@@ -1,7 +1,11 @@
 // HTML overlay labels (Lake Ontario, landmarks, key streets) as MapLibre Markers —
-// fully CSS-styleable to match the mood, no glyph assets. Plus the creek hover tooltip.
+// fully CSS-styleable to match the mood, no glyph assets. Plus the creek hover tooltip and
+// click-to-focus (Tier 3): clicking a creek jumps the timeline to the year it was last mapped
+// (firing its burial flare) and pins an info card.
 import maplibregl from "maplibre-gl";
 import type { Map as MLMap } from "maplibre-gl";
+import { CONFIG } from "./config";
+import type { TimelineController } from "./timeline";
 
 export type LabelsController = { setVisible(on: boolean): void };
 
@@ -15,7 +19,7 @@ interface LabelFeature {
   properties: LabelProps;
 }
 
-export async function createLabels(map: MLMap): Promise<LabelsController> {
+export async function createLabels(map: MLMap, timeline: TimelineController): Promise<LabelsController> {
   let data: { features: LabelFeature[] };
   try {
     data = await fetch(new URL("data/labels.geojson", document.baseURI).href).then((r) => r.json());
@@ -74,6 +78,42 @@ export async function createLabels(map: MLMap): Promise<LabelsController> {
   map.on("mouseleave", "creek-hit", () => {
     map.getCanvas().style.cursor = "";
     tip.style.display = "none";
+  });
+
+  // ── click-to-focus ───────────────────────────────────────────────────────────
+  // A pinned card that jumps the timeline to the year the creek was last mapped.
+  const focus = document.createElement("div");
+  focus.className = "creek-focus";
+  focus.style.display = "none";
+  document.body.appendChild(focus);
+  const hideFocus = () => (focus.style.display = "none");
+
+  const focusHTML = (p: Record<string, unknown>): string => {
+    const name = p.hero === 1 ? "Garrison Creek" : "A buried creek";
+    if (p.has_year !== 1 || p.year_last_seen == null) {
+      return `<b>${name}</b><span>Date unknown — kept on the map, neutral.</span>`;
+    }
+    const y = Number(p.year_last_seen);
+    const end = CONFIG.timeline.endYear;
+    const fate = y >= end ? "Still traceable today." : `Buried about ${end - y} years ago.`;
+    return `<b>${name}</b><span>Last drawn on a map in <b>${y}</b>. ${fate}</span>`;
+  };
+
+  // one handler: focus a creek if clicked, otherwise dismiss the pinned card
+  map.on("click", (e) => {
+    const f = map.queryRenderedFeatures(e.point, { layers: ["creek-hit"] })[0];
+    if (!f) {
+      hideFocus();
+      return;
+    }
+    const p = f.properties;
+    focus.innerHTML = focusHTML(p);
+    focus.style.left = `${e.point.x}px`;
+    focus.style.top = `${e.point.y}px`;
+    focus.style.display = "";
+    if (p.has_year === 1 && p.year_last_seen != null) {
+      timeline.setYear(Number(p.year_last_seen), true); // pause on the year it vanished
+    }
   });
 
   return {

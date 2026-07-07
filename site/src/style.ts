@@ -93,7 +93,8 @@ const UNDATED: FilterSpecification = ["==", ["get", "has_year"], 0];
 // Survivors: creeks whose last-mapped year is the timeline end (still visible / daylighted).
 const SURVIVOR: FilterSpecification = ["all", ["==", ["get", "has_year"], 1], ["==", ["get", "year_last_seen"], CONFIG.timeline.endYear]];
 
-// The six dated creek glow layers + their full-visibility base opacity, for the timeline.
+// The dated creek glow layers + their full-visibility base opacity, for the timeline. The
+// hero "flow" current is included so it fades out with the creek as it's buried.
 export const DATED_CREEK_LAYERS: { id: string; base: number }[] = [
   { id: "rest-halo", base: baseOpacity(CONFIG.creek.rest.halo.opacity) },
   { id: "rest-mid", base: baseOpacity(CONFIG.creek.rest.mid.opacity) },
@@ -101,7 +102,11 @@ export const DATED_CREEK_LAYERS: { id: string; base: number }[] = [
   { id: "hero-halo", base: baseOpacity(CONFIG.creek.hero.halo.opacity) },
   { id: "hero-mid", base: baseOpacity(CONFIG.creek.hero.mid.opacity) },
   { id: "hero-core", base: baseOpacity(CONFIG.creek.hero.core.opacity) },
+  { id: "hero-flow", base: baseOpacity(CONFIG.flow.baseOpacity) },
 ];
+
+// The animated flowing-water current over the hero creek (dasharray marched by flow.ts).
+export const FLOW_LAYER_ID = "hero-flow";
 
 // The two flare layers + their peak opacity, for the timeline.
 export const FLARE_LAYERS: { id: string; max: number }[] = [
@@ -208,6 +213,23 @@ export function buildStyle(): StyleSpecification {
       glowLayer("hero-halo", c.hero.halo, HERO_DATED),
       glowLayer("hero-mid", c.hero.mid, HERO_DATED),
       glowLayer("hero-core", c.hero.core, HERO_DATED),
+      // flowing-water current: a dashed bright line marched along the hero creek (flow.ts
+      // animates the dasharray; the timeline fades line-opacity so it flows only while alive)
+      {
+        id: FLOW_LAYER_ID,
+        type: "line",
+        source: "creeks",
+        "source-layer": "creeks",
+        filter: HERO_DATED,
+        layout: { "line-cap": "round", "line-join": "round" },
+        paint: {
+          "line-color": CONFIG.flow.color,
+          "line-width": byZoom(CONFIG.flow.width * k),
+          "line-blur": byZoom(CONFIG.flow.blur * k),
+          "line-opacity": 0,
+          "line-dasharray": CONFIG.flow.dash.slice(),
+        },
+      },
       // burial flares — bright pulse over a creek at its moment of burial (timeline-driven)
       flareLayer("flare-bloom", CONFIG.flare.bloom),
       flareLayer("flare-core", CONFIG.flare.core),
