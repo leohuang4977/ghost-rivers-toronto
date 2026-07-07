@@ -33,8 +33,11 @@ runtime dependencies, so once it's built there is nothing to maintain.
   (`detached-environments` → `$HOME/.pixi-envs/ghost-rivers`) because the repo lives on the
   Windows C: mount, where `/mnt/c` can't set the Linux file permissions pixi needs.
 - Deploy is a static bundle. `site/vite.config.ts` sets `base: './'` so `dist/` runs at a
-  domain root or at any subpath of the personal GitHub site with no config change. Target
-  host is GitHub Pages (Cloudflare Pages / Netlify are drop-in alternatives). NOT deployed yet.
+  domain root or at any subpath with no config change. **DEPLOYED:** public repo
+  `leohuang4977/ghost-rivers-toronto`, GitHub Actions → Pages on every push to main
+  (`.github/workflows/deploy.yml`; npm ci + build in `site/`, publishes `site/dist`).
+  Live at **https://leohuang4977.github.io/ghost-rivers-toronto/** (PMTiles range requests
+  verified working on Pages — real GETs return 206).
 - The repo must stay **outside** any Google Drive-synced folder. Drive sync corrupts git.
 
 ## Data (full detail in `docs/DATA_SOURCES.md`)
@@ -178,6 +181,22 @@ http://localhost:5173 (hard-reload with Ctrl+Shift+R after re-tiling).
   the dying creeks. "City limits" layer toggle; "About & sources" panel carries the
   approximate-boundary disclaimer + all sources.
 
+- **Presentation pass + publish.** (1) FILL-THE-FRAME: bearing is **-9.5°** (the measured
+  strike of the smoothed shoreline, negated — coast runs level along the bottom); the camera
+  is COMPUTED at load by `src/framing.ts` (largest viewport-shaped window inside the study
+  rectangle, lake-anchored — no black corners on any screen; reset-view recomputes;
+  `creek.refZoom` locked to the computed fill zoom so the authored look holds). (2) INTRO
+  (`src/intro.ts`): first-load-per-session fullscreen open at the headwaters → eased glide
+  south → lands on the default frame → autoplay. Caption copy (Leo's voice, VERBATIM) lives in
+  `CONFIG.intro.captions`; the About panel opens with Leo's fishing paragraph (in `about.ts`).
+  Skippable (any input / Skip button); reduced-motion skips the glide. (3) HONEST COUNTER:
+  "creeks still on the map" counts connected NETWORKS (component ids from `clean_creeks.py`,
+  `comps` in creeks_meta.json + `comp` in tiles): 82 (1802) → 10 (2017) = 5 survivor networks
+  + 5 undated-only. (4) ATTRIBUTION INTERIM: U of T dataset entries removed from the About
+  source list (Leo will add his own treatment); the compliance floor is the short footer line
+  (CC-BY requires attribution; creek permission is citation-conditional). docs/ keeps full
+  citations.
+
 Main config knobs (all in `site/src/config.ts`): timeline (`autoplayDurationMs`,
 `fadeWindowYears`, `endYear`), city-growth curve, flare, `streetLabels`, `survivor`, `beats`,
 `flow`, `eras`, `sparkline`, `population` (show + sparkline + colors; figures in the data file),
@@ -185,12 +204,13 @@ Main config knobs (all in `site/src/config.ts`): timeline (`autoplayDurationMs`,
 opacities, framing. Terrain shape dials, `city.water_smoothing`, and the `annexation` pipeline
 section are in `pipeline/config.yaml`.
 
-## Next: deploy + mobile
+## Next: mobile pass + portfolio link
 
-Phase 4 + the "city grows" layers are complete. Whenever ready: **deploy to GitHub Pages** (the
-architecture is built for it, not yet done) and a **mobile-layout pass** (the timeline bar now
-carries the year + population + sparkline + era buttons and is desktop-tuned; the About / beat /
-layers panels are too).
+The app is LIVE at https://leohuang4977.github.io/ghost-rivers-toronto/ (auto-deploys on push
+to main). Remaining: a **mobile-layout pass** (the timeline bar carries year + population +
+sparkline + era buttons and is desktop-tuned; About / beat / layers panels too), and the
+**personal-site projects card** (leohuang4977.github.io — a separate repo with its own locked
+conventions; card links out to the live app).
 
 ## Working notes
 
