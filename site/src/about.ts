@@ -20,19 +20,17 @@ export function createAbout(): void {
        creeks that once ran to the lake, most now buried under the streets, many still flowing
        through sewer pipes below. This map plays back their disappearance, keyed to the year
        each creek was last drawn on a map.</p>
+    <!-- Creek + annexation dataset credits are being reworked (Leo's own treatment to come);
+         the interim compliance floor is the attribution line in the map footer. Full
+         citations remain in the repo docs (docs/DATA_SOURCES.md, docs/LICENSING.md). -->
     <h3>Data sources</h3>
     <ul>
-      <li><b>Creeks &amp; the "last mapped" years</b> — Historical Hydrography &amp; Disappearing
-        Rivers of Toronto, Marcel Fortin / U&nbsp;of&nbsp;T Map &amp; Data Library (Borealis).</li>
       <li><b>Terrain (hillshade &amp; lake)</b> — Ontario GeoHub lidar DTM; Lake Ontario derived
         from the lidar and smoothed to a vector shoreline.</li>
       <li><b>Streets, parks, ravines</b> — City of Toronto Open Data (Centreline, Green Spaces,
         Ravine bylaw).</li>
       <li><b>Population</b> — census of the <em>old</em> City of Toronto (pre-1998 boundaries),
         via Statistics Canada / the Old Toronto census table.</li>
-      <li><b>City limits</b> — City of Toronto Historical Annexation Boundaries 1834–1967,
-        Marcel Fortin / U&nbsp;of&nbsp;T Map &amp; Data Library (Borealis, DOI 10.5683/SP3/XN2NRW,
-        CC&nbsp;BY&nbsp;4.0), digitized from the City of Toronto Archives annexation map.</li>
     </ul>
     <h3>Notes on accuracy</h3>
     <ul>

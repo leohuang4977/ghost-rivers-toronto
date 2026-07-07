@@ -68,11 +68,14 @@ map.addControl(
 );
 map.addControl(new ResetControl(), "top-right");
 map.addControl(new maplibregl.ScaleControl({ maxWidth: 90, unit: "metric" }), "bottom-left");
+// Interim compliance floor while the U of T source credits are reworked: the annexation
+// data is CC-BY 4.0 (attribution required) and the creek data permission is conditional on
+// citation, so this short line stays in the footer. Full citations live in docs/.
 map.addControl(
   new maplibregl.AttributionControl({
     compact: true,
     customAttribution:
-      "Historical Hydrography, Disappearing Rivers & Annexation Boundaries of Toronto (M. Fortin / U of T Map & Data Library) · Ontario lidar DTM · City of Toronto Open Data · census population (Statistics Canada)",
+      "Creek & annexation data: M. Fortin, U of T Map & Data Library (CC-BY) · Ontario lidar DTM · City of Toronto Open Data",
   }),
   "bottom-right",
 );
