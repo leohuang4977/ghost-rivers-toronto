@@ -23,11 +23,19 @@ export interface Beat {
 
 export const CONFIG = {
   // ── Framing (default + "reset view" target) ─────────────────────────────────
-  camera: {
-    center: [-79.412, 43.644] as LonLat,
-    zoom: 14.4,
-    bearing: -20,
-    pitch: 0,
+  // The camera is COMPUTED at load (src/framing.ts): the largest viewport-shaped window,
+  // at this bearing, that fits fully inside the study rectangle — terrain edge-to-edge,
+  // no black corners on any screen — anchored so the lake lines the bottom of the frame.
+  framing: {
+    studyBbox: [-79.458, 43.625, -79.352, 43.706] as [number, number, number, number],
+    // Bearing = the measured strike of the (smoothed) Lake Ontario shoreline in this frame
+    // (+9.54° ENE), negated so the coast runs level along the bottom. The land band above
+    // the shore — the frame's long axis — then parallels the viewport. Compass control
+    // remains for anyone who wants north-up.
+    bearing: -9.5,
+    anchorLon: -79.41, // preferred horizontal centre (the Garrison corridor); clamped
+    liftM: 0, // raise the frame this many metres off the bbox bottom (shows less lake)
+    insetM: 30, // safety margin so map edges never peek past the data edge
   },
 
   darkBaseColor: "#04070f",
@@ -57,7 +65,7 @@ export const CONFIG = {
     haloColor: "#04070f",
     haloWidth: 1.5,
     size: 11.5,
-    minzoom: 13.2, // zoom-gate so it isn't a cluttered road map when zoomed out
+    minzoom: 13.0, // zoom-gate; the computed fill-the-frame zoom sits ~13.2–13.6 on laptops
     opacity: 0.85,
   },
 
@@ -83,7 +91,10 @@ export const CONFIG = {
   // ── Creeks. blue-black + cyan-white; Garrison is the hero. ───────────────────
   creek: {
     intensity: 1.0,
-    refZoom: 14.4,
+    // Zoom at which the widths/blurs below render exactly as authored. Overridden at load
+    // to the COMPUTED fill-the-frame zoom (main.ts), so the locked Phase 2 look holds at
+    // whatever zoom the dynamic framing lands on. This value is only the no-JS fallback.
+    refZoom: 13.5,
     hero: {
       halo: { color: "#1f8fce", width: 30, blur: 26, opacity: 0.5 },
       mid: { color: "#79dcff", width: 6.5, blur: 3.5, opacity: 0.9 },
@@ -216,6 +227,25 @@ export const CONFIG = {
     glow: { color: "#e6c079", width: 6, blur: 4, opacity: 0.2 }, // soft glow under the line
     fill: { color: "#5a4720", opacity: 0.1 }, // faint warm interior tint (0 to disable)
     label: { color: "#cbb184", size: 10.5, opacity: 0.7 }, // former-municipality name
+  },
+
+  // INTRO SEQUENCE — fullscreen open: start at the headwaters end with the whole network
+  // glowing at the earliest year, glide south along the creeks, land on the lake-anchored
+  // default framing, then autoplay begins. Skippable (any input / Skip button); skipped
+  // entirely under prefers-reduced-motion; runs once per browser session.
+  // ✏️ THE CAPTION COPY LIVES HERE (Leo's voice — edit in place).
+  intro: {
+    enabled: true,
+    startCenter: [-79.421, 43.682] as LonLat, // the headwaters end (Wychwood/Christie uplands)
+    startZoomDelta: 0.55, // start tighter than the landing frame, then ease out while gliding
+    midCenter: [-79.4138, 43.6538] as LonLat, // mid-glide waypoint (Trinity Bellwoods corridor)
+    seg1Ms: 10000, // headwaters → mid-corridor
+    seg2Ms: 11000, // mid-corridor → the lake-anchored landing frame
+    captionFadeMs: 700,
+    captions: [
+      "I fish Toronto's rivers. Most of what's left runs through concrete or barely runs at all. I wanted to know what was here before.",
+      "The old maps answered: dozens of creeks once ran to the lake. The growing city buried them, one by one.",
+    ],
   },
 
   // ── Time animation ───────────────────────────────────────────────────────────

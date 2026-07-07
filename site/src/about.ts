@@ -13,10 +13,13 @@ export function createAbout(): void {
   card.innerHTML = `
     <button class="gr-about-close" aria-label="Close">×</button>
     <h2>About</h2>
-    <p>Toronto's downtown creeks — Garrison, Taddle and their neighbours — were buried into
-       sewers as the city grew over them. Play the timeline: the glowing creeks wink out at the
-       year each was last drawn on a map, the street grid fills in, the population climbs, and
-       the city's official limits sweep outward as it annexes its neighbours.</p>
+    <p>This project started with fishing. I spend a lot of time on Toronto's rivers, and most
+       trips tell the same story: concrete channels, water that turns murky after every rain,
+       dry beds by late summer, stretches where nothing bites. I started wondering what these
+       waters were like before the city grew over them. The old maps had the answer: dozens of
+       creeks that once ran to the lake, most now buried under the streets, many still flowing
+       through sewer pipes below. This map plays back their disappearance, keyed to the year
+       each creek was last drawn on a map.</p>
     <h3>Data sources</h3>
     <ul>
       <li><b>Creeks &amp; the "last mapped" years</b> — Historical Hydrography &amp; Disappearing

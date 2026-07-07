@@ -5,6 +5,8 @@ import type { IControl, Map as MLMap } from "maplibre-gl";
 import { Protocol } from "pmtiles";
 import { CONFIG } from "./config";
 import { buildStyle } from "./style";
+import { computeFraming, currentFraming } from "./framing";
+import { introWillRun, introStartCamera, runIntro } from "./intro";
 import { createTimeline } from "./timeline";
 import { createLabels } from "./labels";
 import { createBeats } from "./beats";
@@ -15,14 +17,22 @@ import { createUI } from "./ui";
 const protocol = new Protocol();
 maplibregl.addProtocol("pmtiles", protocol.tile);
 
-// Phase 3 — the interactive piece: the Phase 2.6 scene + a time animation + UI.
+// Compute the fill-the-frame landing camera for THIS viewport, and lock the authored creek
+// look to that zoom (widths/blurs render as designed at whatever zoom the framing lands on).
+const landing = computeFraming(window.innerWidth || 1280, window.innerHeight || 800);
+CONFIG.creek.refZoom = landing.zoom;
+const willIntro = introWillRun();
+const startCam = willIntro
+  ? introStartCamera(landing, window.innerWidth || 1280, window.innerHeight || 800)
+  : { ...landing, pitch: 0 };
+
 const map = new maplibregl.Map({
   container: "map",
   style: buildStyle(),
-  center: CONFIG.camera.center,
-  zoom: CONFIG.camera.zoom,
-  bearing: CONFIG.camera.bearing,
-  pitch: CONFIG.camera.pitch,
+  center: startCam.center,
+  zoom: startCam.zoom,
+  bearing: startCam.bearing,
+  pitch: 0,
   maxPitch: 0, // stay flat — a tilt would expose the DTM edge as a "horizon"
   attributionControl: false,
   canvasContextAttributes: { preserveDrawingBuffer: true },
@@ -40,7 +50,8 @@ class ResetControl implements IControl {
     b.title = "Reset view";
     b.setAttribute("aria-label", "Reset view");
     b.addEventListener("click", () =>
-      m.flyTo({ ...CONFIG.camera, duration: 1200, essential: true }),
+      // recompute for the CURRENT viewport so reset always fills the frame edge-to-edge
+      m.flyTo({ ...currentFraming(m.getContainer()), pitch: 0, duration: 1200, essential: true }),
     );
     c.appendChild(b);
     this._container = c;
@@ -82,10 +93,18 @@ if (import.meta.env.DEV) (window as unknown as Record<string, unknown>).__gr = {
 
 map.on("load", async () => {
   const timeline = await createTimeline(map);
+  if (willIntro) timeline.pause(); // hold the full 1802 glow while the intro glides
   const labels = await createLabels(map, timeline);
   const beats = createBeats(map, timeline);
   createFlow(map); // flowing-water current on the hero creek
   createUI(map, timeline, labels, beats);
+  if (willIntro) {
+    beats.setVisible(false); // no beat cards over the intro captions
+    runIntro(map, currentFraming(map.getContainer()), () => {
+      beats.setVisible(true);
+      timeline.play(); // landing frame reached — the story starts
+    });
+  }
   if (import.meta.env.DEV)
     Object.assign((window as unknown as Record<string, unknown>).__gr as object, { timeline, beats });
   console.info("[ghost-rivers] interactive piece ready");

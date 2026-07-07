@@ -95,6 +95,13 @@ def main() -> None:
     nearest = int(g.to_crs(dtm_crs).geometry.distance(seed_m).idxmin())
     hero_comp = comp[nearest]
     g["hero"] = [1 if c == hero_comp else 0 for c in comp]
+
+    # dense component id per feature — the SAME connected networks used for the hero flag.
+    # The site's "creeks still on the map" counter counts distinct networks (a creek), not
+    # raw line segments, so the number matches what a viewer sees glowing.
+    dense: dict[int, int] = {}
+    g["comp"] = [dense.setdefault(c, len(dense)) for c in comp]
+    print(f"[1] connected creek networks: {len(dense)}")
     hero_km = g.loc[g["hero"] == 1].to_crs(dtm_crs).length.sum() / 1000.0
     print(f"[1] hero network (Garrison, from seed): {int(g['hero'].sum())} features, "
           f"{hero_km:.2f} km — the rest render as the dim supporting layer")
@@ -126,16 +133,27 @@ def main() -> None:
 
     # ── length report + write ──────────────────────────────────────────────────
     total_km = g.to_crs(dtm_crs).length.sum() / 1000.0
-    keep = g[["year_last_seen", "has_year", "hero", "geometry"]].reset_index(drop=True)
+    keep = g[["year_last_seen", "has_year", "hero", "comp", "geometry"]].reset_index(drop=True)
     keep.to_file(out_path, driver="GeoJSON")
 
-    # small metadata the timeline UI needs (year range + per-feature years for the counter)
+    # small metadata the timeline UI needs: per-feature years + component ids (aligned).
+    # The counter counts distinct components with any still-visible segment at year Y.
     years = [int(v) if pd.notna(v) else None for v in keep["year_last_seen"]]
+    comps = [int(c) for c in keep["comp"]]
     dated = [y for y in years if y is not None]
-    meta = {"years": years, "min_year": min(dated), "max_year": max(dated),
+    meta = {"years": years, "comps": comps, "n_comps": len(dense),
+            "min_year": min(dated), "max_year": max(dated),
             "count": len(years), "undated": years.count(None)}
     with open(os.path.join(processed, "creeks_meta.json"), "w", encoding="utf-8") as fh:
         json.dump(meta, fh)
+
+    # verification: what the counter will read at the end of the timeline (should match
+    # what is visibly glowing in 2017 — survivor networks + undated-only networks)
+    end_y = max(dated)
+    vis = {c for c, y in zip(comps, years) if y is None or y >= end_y}
+    surv = {c for c, y in zip(comps, years) if y is not None and y >= end_y}
+    print(f"[✓] counter check @ {end_y}: {len(vis)} networks still on the map "
+          f"({len(surv)} with dated survivor segments, {len(vis) - len(surv)} undated-only)")
 
     print(f"\n[✓] wrote {out_path}")
     print(f"    features: {len(keep)}   total length: {total_km:.2f} km   "

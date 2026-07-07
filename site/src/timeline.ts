@@ -3,9 +3,15 @@
 // creeks are static (handled by their own layers). Autoplay loops 1802 → 2017.
 import type { Map as MLMap, ExpressionSpecification } from "maplibre-gl";
 import { CONFIG } from "./config";
-import { DATED_CREEK_LAYERS, FLARE_LAYERS, SURVIVOR_LAYERS, ANNEX_LAYERS } from "./style";
+import { DATED_CREEK_LAYERS, FLARE_LAYERS, SURVIVOR_LAYERS, ANNEX_LAYERS, STREET_LABEL_ID } from "./style";
 
-type Meta = { years: (number | null)[]; min_year: number; max_year: number; undated: number };
+type Meta = {
+  years: (number | null)[];
+  comps?: number[]; // per-feature connected-network id, aligned with `years`
+  min_year: number;
+  max_year: number;
+  undated: number;
+};
 
 export type TimelineController = {
   play(): void;
@@ -46,10 +52,23 @@ export async function createTimeline(map: MLMap): Promise<TimelineController> {
   let holdThenLoop = false; // true only for the end-of-timeline hold (loop back on expiry)
   const updateCbs: ((y: number, c: number, p: boolean) => void)[] = [];
 
+  // "N creeks still on the map" counts distinct connected creek NETWORKS (per-feature
+  // component ids from the pipeline), not raw line segments — a network is on the map at Y
+  // if any of its segments is still visible (undated segments never disappear). Falls back
+  // to the old segment count if an older creeks_meta.json has no `comps`.
+  const comps = meta.comps && meta.comps.length === meta.years.length ? meta.comps : null;
   function countAt(y: number): number {
-    let n = undatedCount;
-    for (const yy of datedYears) if (yy >= y) n++;
-    return n;
+    if (!comps) {
+      let n = undatedCount;
+      for (const yy of datedYears) if (yy >= y) n++;
+      return n;
+    }
+    const alive = new Set<number>();
+    for (let i = 0; i < comps.length; i++) {
+      const yy = meta.years[i];
+      if (yy == null || yy >= y) alive.add(comps[i]);
+    }
+    return alive.size;
   }
 
   function fadeExpr(y: number, base: number): ExpressionSpecification {
@@ -136,6 +155,9 @@ export async function createTimeline(map: MLMap): Promise<TimelineController> {
     const parkOp = CONFIG.city.parks.opacity * (g.parksMinFactor + (1 - g.parksMinFactor) * cf);
     if (map.getLayer("streets")) map.setPaintProperty("streets", "line-opacity", streetOp);
     if (map.getLayer("parks")) map.setPaintProperty("parks", "fill-opacity", parkOp);
+    // street NAMES grow in with the grid — no 1802 frame with labels over an empty plain
+    if (map.getLayer(STREET_LABEL_ID))
+      map.setPaintProperty(STREET_LABEL_ID, "text-opacity", CONFIG.streetLabels.opacity * cf);
 
     for (const cb of updateCbs) cb(y, countAt(y), playing);
   }
