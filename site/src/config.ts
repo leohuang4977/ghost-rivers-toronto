@@ -191,6 +191,33 @@ export const CONFIG = {
     playheadColor: "#eaf7ff",
   },
 
+  // POPULATION READOUT — a small warm figure by the year readout that climbs with Y: "watch
+  // people pour in as the water leaves." Figures live in the data file (easy to edit); this is
+  // just the styling + toggles. The honesty caveat (boundaries changed via annexation) is in
+  // the data file's `note` and shown behind the ⓘ. Interpolated linearly between census points.
+  population: {
+    show: true,
+    sparkline: true, // a tiny growth-curve next to the number
+    dataUrl: "data/population.json",
+    color: "#d8c193", // warm parchment — the growing city, a counterpoint to the cyan water
+    sparkColor: "#b9a678",
+  },
+
+  // ANNEXATION BOUNDARIES (Part 2) — the REAL "city grows": former municipalities light up
+  // their boundary as Y passes the year Toronto annexed them, so the footprint sweeps outward
+  // over the dying creeks. A GeoJSON of curated, DOCUMENTED annexations (data file), each a
+  // polygon with a `year`; the timeline fades each in over `fadeYears`. Drawn UNDER the creek
+  // glow so the creeks stay hero. Boundaries are approximate (see the About/ⓘ note).
+  annexation: {
+    show: true,
+    dataUrl: "data/annexations.geojson",
+    fadeYears: 3, // a district fades in over this many years once Y passes its annexation year
+    line: { color: "#d9ad61", width: 1.3, opacity: 0.7 }, // warm glowing city-limit line
+    glow: { color: "#e6c079", width: 6, blur: 4, opacity: 0.2 }, // soft glow under the line
+    fill: { color: "#5a4720", opacity: 0.1 }, // faint warm interior tint (0 to disable)
+    label: { color: "#cbb184", size: 10.5, opacity: 0.7 }, // former-municipality name
+  },
+
   // ── Time animation ───────────────────────────────────────────────────────────
   timeline: {
     autoplayDurationMs: 34000, // one full 1802 → 2017 cycle

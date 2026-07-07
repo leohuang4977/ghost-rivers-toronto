@@ -5,6 +5,7 @@ import type { TimelineController } from "./timeline";
 import type { LabelsController } from "./labels";
 import type { BeatsController } from "./beats";
 import { CONFIG } from "./config";
+import { createPopulation } from "./population";
 import { CREEK_LAYER_IDS, STREET_LABEL_ID } from "./style";
 
 // Build a static burial-rate sparkline (bars) spanning minYear→maxYear, aligned over the
@@ -95,7 +96,11 @@ export function createUI(
   slider.setAttribute("aria-label", "Year");
 
   const top = el("div", "gr-tl-top");
-  top.append(yearOut, counter);
+  const rightCol = el("div", "gr-tl-right");
+  const popMount = el("div", "gr-pop-mount"); // population readout mounts here (async)
+  rightCol.append(popMount, counter);
+  top.append(yearOut, rightCol);
+  createPopulation(timeline, popMount); // fire-and-forget; fills in when its data loads
 
   // burial-rate sparkline (under the year, aligned over the scrubber)
   const { svg: spark, playhead } = buildSparkline(timeline.datedYears, timeline.minYear, timeline.maxYear);
