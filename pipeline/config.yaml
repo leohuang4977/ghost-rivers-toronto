@@ -75,10 +75,16 @@ city:
     - "Expressway"
   green_spaces: "data/raw/city_open_data/green_spaces/Green Spaces - 4326.geojson"
   ravine: "data/raw/city_open_data/ravine/RAVINE_BYLAW_WGS84.shp"
-  # Lake Ontario is derived from the DTM's nodata (lidar returns nothing over water),
-  # so the water edge matches the hillshade edge exactly. Keep only big polygons.
+  # Lake Ontario is derived from the DTM's nodata (lidar returns nothing over water) — an
+  # accurate extent, but pixelated. Keep only big polygons, then smooth the pixel stair-steps
+  # into vector curves so the shoreline reads as real geography, not pixels.
   water_from_hillshade: "data/processed/hillshade_3857.tif"
-  water_min_area_m2: 50000
+  water_min_area_m2: 50000     # in the raster CRS (EPSG:3857); drops small nodata gaps
+  water_smoothing:
+    close_m: 10                # morphological close+open radius (removes ~2× this in wiggles)
+    simplify_m: 5              # Douglas-Peucker tolerance before rounding
+    chaikin_iters: 2           # corner-cutting passes → smooth curves (more = smoother)
+    grow_m: 4                  # slight outward bias so the on-top water leaves no dark rim
 
 # ── Tiling ───────────────────────────────────────────────────────────────────
 tiles:

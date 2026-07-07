@@ -143,7 +143,6 @@ export function buildStyle(): StyleSpecification {
     },
     layers: [
       { id: "background", type: "background", paint: { "background-color": CONFIG.darkBaseColor } },
-      fillLayer("water", "water", city.water.color, city.water.opacity),
       {
         id: "hillshade",
         type: "raster",
@@ -157,6 +156,9 @@ export function buildStyle(): StyleSpecification {
           "raster-resampling": "linear",
         },
       },
+      // water drawn ABOVE the hillshade: the smooth (vector) shoreline then defines the visible
+      // coast and covers the hillshade's jaggy nodata fringe on the water side.
+      fillLayer("water", "water", city.water.color, city.water.opacity),
       fillLayer("parks", "parks", city.parks.color, city.parks.opacity),
       fillLayer("ravines", "ravines", city.ravines.color, city.ravines.opacity),
       {

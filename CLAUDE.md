@@ -83,7 +83,13 @@ Downtown v1 only — the Garrison + Taddle corridor. Study bbox WGS84
 - DTM tiles are a compound 3D CRS (UTM 17N + CGVD2013 height); force plain 2D EPSG:2958 when
   mosaicking. Nodata is inconsistent across tiles (some -3.4e38, some +3.4e38) — set nodata
   explicitly per source or the +sentinel poisons the mosaic. The lake is derived from DTM
-  nodata (lidar returns nothing over water), so the water edge matches the hillshade edge.
+  nodata (lidar returns nothing over water) — an accurate extent, but pixelated, so
+  `city_layers.py` SMOOTHS it (morphological close+open → simplify → Chaikin, in EPSG:2958)
+  into vector curves; knobs in `config.yaml` under `city.water_smoothing`. The `water` fill is
+  drawn ABOVE the hillshade in `style.ts` so the smooth shoreline defines the visible coast and
+  hides the hillshade's jaggy nodata fringe. (The City Centreline "Major Shoreline" is real
+  vector data but is fragmented across the downtown slips/quays and won't close into a lake
+  polygon — the lidar extent + smoothing is more robust and more accurate here.)
 
 ## Build artifacts (staged in `site/public/data/`)
 
