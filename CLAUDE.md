@@ -204,13 +204,15 @@ Main config knobs (all in `site/src/config.ts`): timeline (`autoplayDurationMs`,
 opacities, framing. Terrain shape dials, `city.water_smoothing`, and the `annexation` pipeline
 section are in `pipeline/config.yaml`.
 
-## Next: mobile pass + portfolio link
+## Next: mobile pass
 
 The app is LIVE at https://leohuang4977.github.io/ghost-rivers-toronto/ (auto-deploys on push
-to main). Remaining: a **mobile-layout pass** (the timeline bar carries year + population +
-sparkline + era buttons and is desktop-tuned; About / beat / layers panels too), and the
-**personal-site projects card** (leohuang4977.github.io — a separate repo with its own locked
-conventions; card links out to the live app).
+to main). It is linked from the portfolio: leohuang4977.github.io/projects/ carries a "Ghost
+Rivers of Toronto" card (in that site's own repo — separate, locked conventions; the card's
+cover is a render of the real creek geometry at `assets/img/ghost-rivers-cover.png`, 1600×1000,
+which Leo can overwrite with a live screenshot at the same path). Remaining here: a
+**mobile-layout pass** (the timeline bar carries year + population + sparkline + era buttons
+and is desktop-tuned; About / beat / layers panels too).
 
 ## Working notes
 
