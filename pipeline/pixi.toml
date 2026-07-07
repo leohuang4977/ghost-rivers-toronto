@@ -57,13 +57,13 @@ cmd = "python -m ghost_rivers.city_layers"      # streets / parks / ravines / wa
 env = { PYTHONPATH = "src" }
 depends-on = ["hillshade"]                       # water is derived from the hillshade nodata
 inputs = ["src/ghost_rivers/city_layers.py", "src/ghost_rivers/config.py", "config.yaml", "data/processed/hillshade_3857.tif"]
-outputs = ["data/interim/streets.geojson", "data/interim/parks.geojson", "data/interim/ravines.geojson", "data/interim/water.geojson"]
+outputs = ["data/interim/streets.geojson", "data/interim/street_labels.geojson", "data/interim/parks.geojson", "data/interim/ravines.geojson", "data/interim/water.geojson"]
 
 [tasks.tiles]
 cmd = "python -m ghost_rivers.tile"             # Step 4: -> PMTiles -> site/public/data
 env = { PYTHONPATH = "src" }
 depends-on = ["creeks", "hillshade", "city"]
-inputs = ["src/ghost_rivers/tile.py", "src/ghost_rivers/config.py", "src/ghost_rivers/_util.py", "config.yaml", "data/processed/creeks_4326.geojson", "data/processed/hillshade_3857.tif", "data/interim/streets.geojson", "data/interim/parks.geojson", "data/interim/ravines.geojson", "data/interim/water.geojson"]
+inputs = ["src/ghost_rivers/tile.py", "src/ghost_rivers/config.py", "src/ghost_rivers/_util.py", "config.yaml", "data/processed/creeks_4326.geojson", "data/processed/hillshade_3857.tif", "data/interim/streets.geojson", "data/interim/street_labels.geojson", "data/interim/parks.geojson", "data/interim/ravines.geojson", "data/interim/water.geojson"]
 outputs = ["data/processed/creeks.pmtiles", "data/processed/hillshade.pmtiles", "data/processed/city.pmtiles"]
 
 [tasks.all]

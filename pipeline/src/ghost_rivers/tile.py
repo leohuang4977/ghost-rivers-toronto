@@ -71,7 +71,7 @@ def build_city(cfg, interim, processed, minz, maxz) -> str:
     """Bundle streets/parks/ravines/water into one multi-layer city.pmtiles."""
     out = os.path.join(processed, "city.pmtiles")
     inputs = []
-    for name in ("streets", "parks", "ravines", "water"):
+    for name in ("streets", "street_labels", "parks", "ravines", "water"):
         p = os.path.join(interim, f"{name}.geojson")
         if os.path.exists(p):
             inputs += ["-L", f"{name}:{p}"]

@@ -38,6 +38,36 @@ export const CONFIG = {
     streets: { color: "#4a5c74", width: 0.85, opacity: 0.5 },
   },
 
+  // Self-hosted glyphs (Noto Sans, SIL OFL) — no external font CDN at runtime.
+  glyphsFont: "Noto Sans Medium",
+  streetLabels: {
+    color: "#93a1af",
+    haloColor: "#04070f",
+    haloWidth: 1.5,
+    size: 11.5,
+    minzoom: 13.2, // zoom-gate so it isn't a cluttered road map when zoomed out
+    opacity: 0.85,
+  },
+
+  // MOVE 1 — the city grows as creeks die: street (and, subtler, park) opacity ramps
+  // with the timeline year from near-zero at startYear to full by fullByYear.
+  cityGrowth: {
+    startYear: 1830,
+    fullByYear: 1955, // full grid by mid-century, riding the burial wave
+    easeExp: 1.9, // >1 = ease-in: faint early, accelerates late-1800s → 1900s
+    streetsMinFactor: 0.05, // streets start at 5% of their full opacity
+    parksMinFactor: 0.4, // parks ramp too, but subtler (start more present)
+  },
+
+  // MOVE 2 — burial flares: a bright pulse at the moment a creek is buried, then dark.
+  // Two layers over the dated creeks; their opacity is a function of (Y − year_last_seen).
+  flare: {
+    years: 4, // flare window in Y-years (~0.6 s at the default pace)
+    falloffExp: 1.6, // pulse decay shape
+    bloom: { color: "#bfefff", width: 17, blur: 9, maxOpacity: 0.5 },
+    core: { color: "#ffffff", width: 3.4, blur: 0.6, maxOpacity: 0.95 },
+  },
+
   // ── Creeks. blue-black + cyan-white; Garrison is the hero. ───────────────────
   creek: {
     intensity: 1.0,

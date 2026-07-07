@@ -68,6 +68,11 @@ city:
     - "Laneway"
     - "Access Road"
     - "Busway"
+  # Only these named classes get a street-name label (a few key arterials, not the grid).
+  label_classes:
+    - "Major Arterial"
+    - "Minor Arterial"
+    - "Expressway"
   green_spaces: "data/raw/city_open_data/green_spaces/Green Spaces - 4326.geojson"
   ravine: "data/raw/city_open_data/ravine/RAVINE_BYLAW_WGS84.shp"
   # Lake Ontario is derived from the DTM's nodata (lidar returns nothing over water),

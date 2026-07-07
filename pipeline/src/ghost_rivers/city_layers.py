@@ -47,6 +47,25 @@ def main() -> None:
     st.to_file(os.path.join(interim, "streets.geojson"), driver="GeoJSON")
     print(f"[city] streets: {len(st)} features (of {len(cl)} centreline; {len(keep)} road classes)")
 
+    # ── street NAME labels: named arterials only (a handful of key streets) ──────
+    lab = cl[cl["FEATURE_CODE_DESC"].isin(set(ccfg["label_classes"]))].copy()
+    lab = _clip4326(lab, clip_poly)
+    lab = lab[lab.geometry.geom_type.isin(["LineString", "MultiLineString"])]
+    lab = lab[["LINEAR_NAME_FULL", "geometry"]].rename(columns={"LINEAR_NAME_FULL": "name"})
+    lab = lab[lab["name"].notna() & (lab["name"].astype(str).str.len() > 0)]
+
+    def _abbrev(n: str) -> str:
+        for a, b in (("Street", "St"), ("Avenue", "Ave"), ("Boulevard", "Blvd"),
+                     ("Road", "Rd"), ("Drive", "Dr"), ("Crescent", "Cres"),
+                     (" West", " W"), (" East", " E"), (" North", " N"), (" South", " S")):
+            n = n.replace(a, b)
+        return n
+
+    lab["name"] = lab["name"].astype(str).map(_abbrev)
+    lab = lab.dissolve(by="name", as_index=False)  # one feature per street name
+    lab.to_file(os.path.join(interim, "street_labels.geojson"), driver="GeoJSON")
+    print(f"[city] street labels: {len(lab)} named arterials")
+
     # ── parks: Green Spaces ─────────────────────────────────────────────────────
     gs = _polys_only(_clip4326(gpd.read_file(resolve(ccfg["green_spaces"])), clip_poly))
     gs[["geometry"]].to_file(os.path.join(interim, "parks.geojson"), driver="GeoJSON")

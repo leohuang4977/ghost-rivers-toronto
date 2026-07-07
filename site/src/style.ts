@@ -15,6 +15,10 @@ import { CONFIG } from "./config";
 const pmtiles = (rel: string) =>
   `pmtiles://${new URL(rel, document.baseURI).href}`;
 
+// Self-hosted glyphs: resolve the base, then append MapLibre's {fontstack}/{range}
+// placeholders literally (so they aren't URL-encoded).
+const glyphsUrl = () => `${new URL("fonts/", document.baseURI).href}{fontstack}/{range}.pbf`;
+
 function byZoom(base: number): ExpressionSpecification {
   const ref = CONFIG.creek.refZoom;
   return [
@@ -63,6 +67,25 @@ function fillLayer(id: string, sourceLayer: string, color: string, opacity: numb
   };
 }
 
+// Burial-flare layer: drawn over the dated creeks; opacity is set each frame by the
+// timeline as a pulse around each creek's burial year. Static color/width/blur here.
+function flareLayer(id: string, s: { color: string; width: number; blur: number }): LayerSpecification {
+  return {
+    id,
+    type: "line",
+    source: "creeks",
+    "source-layer": "creeks",
+    filter: ["==", ["get", "has_year"], 1],
+    layout: { "line-cap": "round", "line-join": "round" },
+    paint: {
+      "line-color": s.color,
+      "line-width": byZoom(s.width),
+      "line-blur": byZoom(s.blur),
+      "line-opacity": 0,
+    },
+  };
+}
+
 const HERO_DATED: FilterSpecification = ["all", ["==", ["get", "hero"], 1], ["==", ["get", "has_year"], 1]];
 const REST_DATED: FilterSpecification = ["all", ["!=", ["get", "hero"], 1], ["==", ["get", "has_year"], 1]];
 const UNDATED: FilterSpecification = ["==", ["get", "has_year"], 0];
@@ -77,10 +100,19 @@ export const DATED_CREEK_LAYERS: { id: string; base: number }[] = [
   { id: "hero-core", base: baseOpacity(CONFIG.creek.hero.core.opacity) },
 ];
 
-// All creek layer ids (for the layer-toggle panel), incl. the invisible hover target.
+// The two flare layers + their peak opacity, for the timeline.
+export const FLARE_LAYERS: { id: string; max: number }[] = [
+  { id: "flare-bloom", max: CONFIG.flare.bloom.maxOpacity },
+  { id: "flare-core", max: CONFIG.flare.core.maxOpacity },
+];
+
+export const STREET_LABEL_ID = "street-labels";
+
+// All creek layer ids (for the layer-toggle panel), incl. flare + the invisible hover target.
 export const CREEK_LAYER_IDS = [
   "undated-glow", "undated-core",
   ...DATED_CREEK_LAYERS.map((l) => l.id),
+  "flare-bloom", "flare-core",
   "creek-hit",
 ];
 
@@ -91,6 +123,7 @@ export function buildStyle(): StyleSpecification {
   return {
     version: 8,
     name: "ghost-rivers-interactive",
+    glyphs: glyphsUrl(),
     sources: {
       hillshade: { type: "raster", url: pmtiles("data/hillshade.pmtiles"), tileSize: 256 },
       creeks: { type: "vector", url: pmtiles("data/creeks.pmtiles") },
@@ -126,6 +159,31 @@ export function buildStyle(): StyleSpecification {
           "line-opacity": city.streets.opacity,
         },
       },
+      // major-arterial name labels (self-hosted glyphs; collision + zoom-gated)
+      {
+        id: STREET_LABEL_ID,
+        type: "symbol",
+        source: "city",
+        "source-layer": "street_labels",
+        minzoom: CONFIG.streetLabels.minzoom,
+        layout: {
+          "symbol-placement": "line",
+          "text-field": ["get", "name"],
+          "text-font": [CONFIG.glyphsFont],
+          "text-size": CONFIG.streetLabels.size,
+          "text-letter-spacing": 0.04,
+          "text-max-angle": 40,
+          "symbol-spacing": 320,
+          "text-padding": 4,
+        },
+        paint: {
+          "text-color": CONFIG.streetLabels.color,
+          "text-halo-color": CONFIG.streetLabels.haloColor,
+          "text-halo-width": CONFIG.streetLabels.haloWidth,
+          "text-halo-blur": 0.5,
+          "text-opacity": CONFIG.streetLabels.opacity,
+        },
+      },
       // undated creeks — neutral, static, always visible
       glowLayer("undated-glow", c.undated.glow, UNDATED),
       glowLayer("undated-core", c.undated.core, UNDATED),
@@ -136,6 +194,9 @@ export function buildStyle(): StyleSpecification {
       glowLayer("hero-halo", c.hero.halo, HERO_DATED),
       glowLayer("hero-mid", c.hero.mid, HERO_DATED),
       glowLayer("hero-core", c.hero.core, HERO_DATED),
+      // burial flares — bright pulse over a creek at its moment of burial (timeline-driven)
+      flareLayer("flare-bloom", CONFIG.flare.bloom),
+      flareLayer("flare-core", CONFIG.flare.core),
       // invisible wide line on top — a generous hover target for the creek tooltip
       {
         id: "creek-hit",

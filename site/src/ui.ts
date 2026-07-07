@@ -3,7 +3,7 @@
 import type { Map as MLMap, IControl } from "maplibre-gl";
 import type { TimelineController } from "./timeline";
 import type { LabelsController } from "./labels";
-import { CREEK_LAYER_IDS } from "./style";
+import { CREEK_LAYER_IDS, STREET_LABEL_ID } from "./style";
 
 function el(tag: string, cls?: string, html?: string): HTMLElement {
   const e = document.createElement(tag);
@@ -77,6 +77,7 @@ export function createUI(map: MLMap, timeline: TimelineController, labels: Label
   const toggles: { label: string; ids: string[]; cb?: (on: boolean) => void }[] = [
     { label: "Creeks", ids: CREEK_LAYER_IDS },
     { label: "Street grid", ids: ["streets"] },
+    { label: "Street names", ids: [STREET_LABEL_ID] },
     { label: "Parks", ids: ["parks"] },
     { label: "Ravines", ids: ["ravines"] },
     { label: "Water", ids: ["water"] },

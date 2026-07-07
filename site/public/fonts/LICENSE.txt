@@ -1,0 +1,6 @@
+Glyphs (*.pbf) are generated from Noto Sans, © The Noto Project Authors,
+licensed under the SIL Open Font License, Version 1.1 (OFL-1.1).
+https://openfontlicense.org/  ·  https://github.com/notofonts/noto-fonts
+
+PBF glyph range files self-hosted here (no runtime font CDN); sourced from the
+Protomaps basemaps-assets font build. Free to use and redistribute under OFL-1.1.

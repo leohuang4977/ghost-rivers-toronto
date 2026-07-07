@@ -3,7 +3,7 @@
 // creeks are static (handled by their own layers). Autoplay loops 1802 → 2017.
 import type { Map as MLMap, ExpressionSpecification } from "maplibre-gl";
 import { CONFIG } from "./config";
-import { DATED_CREEK_LAYERS } from "./style";
+import { DATED_CREEK_LAYERS, FLARE_LAYERS } from "./style";
 
 type Meta = { years: (number | null)[]; min_year: number; max_year: number; undated: number };
 
@@ -62,10 +62,42 @@ export async function createTimeline(map: MLMap): Promise<TimelineController> {
     ] as ExpressionSpecification;
   }
 
+  // MOVE 2 — flare opacity: a pulse peaking at burial (d=0), decaying over `years`.
+  function flareExpr(y: number, max: number): ExpressionSpecification {
+    const w = CONFIG.flare.years;
+    const e = CONFIG.flare.falloffExp;
+    return [
+      "case",
+      ["<", ["-", y, ["get", "year_last_seen"]], 0], 0,
+      [">", ["-", y, ["get", "year_last_seen"]], w], 0,
+      ["*", max, ["^", ["-", 1, ["/", ["-", y, ["get", "year_last_seen"]], w]], e]],
+    ] as ExpressionSpecification;
+  }
+
+  // MOVE 1 — city growth factor 0→1 as Y goes startYear→fullByYear (ease-in).
+  function cityFactor(y: number): number {
+    const g = CONFIG.cityGrowth;
+    const tt = (y - g.startYear) / (g.fullByYear - g.startYear);
+    return Math.pow(Math.max(0, Math.min(1, tt)), g.easeExp);
+  }
+
   function apply(y: number) {
+    // creek fades
     for (const { id, base } of DATED_CREEK_LAYERS) {
       if (map.getLayer(id)) map.setPaintProperty(id, "line-opacity", fadeExpr(y, base));
     }
+    // burial flares
+    for (const { id, max } of FLARE_LAYERS) {
+      if (map.getLayer(id)) map.setPaintProperty(id, "line-opacity", flareExpr(y, max));
+    }
+    // the city grows in as the creeks die
+    const g = CONFIG.cityGrowth;
+    const cf = cityFactor(y);
+    const streetOp = CONFIG.city.streets.opacity * (g.streetsMinFactor + (1 - g.streetsMinFactor) * cf);
+    const parkOp = CONFIG.city.parks.opacity * (g.parksMinFactor + (1 - g.parksMinFactor) * cf);
+    if (map.getLayer("streets")) map.setPaintProperty("streets", "line-opacity", streetOp);
+    if (map.getLayer("parks")) map.setPaintProperty("parks", "fill-opacity", parkOp);
+
     updateCb?.(y, countAt(y), playing);
   }
 
