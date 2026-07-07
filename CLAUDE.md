@@ -175,11 +175,13 @@ http://localhost:5173 (hard-reload with Ctrl+Shift+R after re-tiling).
   (`population.ts`): a warm figure by the year readout that climbs with Y (old-City census,
   web-researched + adversarially verified; animated old-City only — the entity that annexed its
   neighbours — NOT the wider "1M by 1951" Metro figure; honesty caveat behind the ⓘ). (2)
-  ANNEXATION BOUNDARIES (`annexation.py` → `annexations.geojson`, `annex-*` layers): the REAL
-  city growth — 36 former-municipality parcels (Fortin dataset, all years verified) fade in
-  under the creek glow as Y passes each annexation year, so the footprint sweeps outward over
-  the dying creeks. "City limits" layer toggle; "About & sources" panel carries the
-  approximate-boundary disclaimer + all sources.
+  ANNEXATION BOUNDARIES (`annexation.py` → `annexations.geojson` + `annexations_cum.geojson`,
+  `annex-*` layers): the REAL city growth — 36 former-municipality parcels (Fortin dataset,
+  all years verified). The persistent line/fill draws the CUMULATIVE per-year footprint
+  (pipeline-precomputed union, crossfaded between years), so interior borders dissolve the
+  moment a district joins and the line always reads as the entirety of Toronto; the newly
+  joined parcel flashes a brief warm pulse (`annex-pulse`). "City limits" layer toggle;
+  "About & sources" panel carries the approximate-boundary disclaimer.
 
 - **Presentation pass + publish.** (1) FILL-THE-FRAME: bearing is **-9.5°** (the measured
   strike of the smoothed shoreline, negated — coast runs level along the bottom); the camera
@@ -197,10 +199,20 @@ http://localhost:5173 (hard-reload with Ctrl+Shift+R after re-tiling).
   (CC-BY requires attribution; creek permission is citation-conditional). docs/ keeps full
   citations.
 
+- **Audience-feedback pass.** (1) VARIABLE PACE: autoplay advances a normalized progress
+  mapped through `timeline.pace` (piecewise-linear anchors derived from the burial
+  distribution — NOTHING is buried after 1949, so the 1950–2017 tail compresses to ~10% of
+  the run, ~3.4 s, sweeping into the survivor finale; scrubbing stays year-linear). (2)
+  POPULATION UNIT-DOT GRID: a warm dot grid (1 dot ≈ 25,000 people, `population.dots`) fills
+  beside the number — visceral, not just a ticking count. A dwellings/buildings companion
+  series was researched and SKIPPED: old-City dwelling counts live only in scanned census
+  volumes (no citable tabulated series; Harris 1899–1913 covers a sliver) — don't fake it.
+  (3) CUMULATIVE CITY LIMIT: see the annexation entry above.
+
 Main config knobs (all in `site/src/config.ts`): timeline (`autoplayDurationMs`,
-`fadeWindowYears`, `endYear`), city-growth curve, flare, `streetLabels`, `survivor`, `beats`,
-`flow`, `eras`, `sparkline`, `population` (show + sparkline + colors; figures in the data file),
-`annexation` (show + fadeYears + line/glow/fill styling), creek styles, hillshade/city
+`fadeWindowYears`, `endYear`, `endHoldMs`, `pace`), city-growth curve, flare, `streetLabels`,
+`survivor`, `beats`, `flow`, `eras`, `sparkline`, `population` (dots unit/cols + figures in
+the data file), `annexation` (fadeYears + line/glow/fill/pulse), creek styles, hillshade/city
 opacities, framing. Terrain shape dials, `city.water_smoothing`, and the `annexation` pipeline
 section are in `pipeline/config.yaml`.
 

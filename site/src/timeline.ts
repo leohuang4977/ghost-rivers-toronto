@@ -3,7 +3,14 @@
 // creeks are static (handled by their own layers). Autoplay loops 1802 → 2017.
 import type { Map as MLMap, ExpressionSpecification } from "maplibre-gl";
 import { CONFIG } from "./config";
-import { DATED_CREEK_LAYERS, FLARE_LAYERS, SURVIVOR_LAYERS, ANNEX_LAYERS, STREET_LABEL_ID } from "./style";
+import {
+  DATED_CREEK_LAYERS,
+  FLARE_LAYERS,
+  SURVIVOR_LAYERS,
+  ANNEX_LAYERS,
+  ANNEX_PULSE_ID,
+  STREET_LABEL_ID,
+} from "./style";
 
 type Meta = {
   years: (number | null)[];
@@ -51,6 +58,43 @@ export async function createTimeline(map: MLMap): Promise<TimelineController> {
   let holdUntil: number | null = null;
   let holdThenLoop = false; // true only for the end-of-timeline hold (loop back on expiry)
   const updateCbs: ((y: number, c: number, p: boolean) => void)[] = [];
+
+  // VARIABLE PACE — autoplay advances a normalized progress p uniformly and maps it to a
+  // year through the piecewise-linear CONFIG.timeline.pace curve, so eras get screen time
+  // proportional to how much is happening (the eventless 1950s→2010s fast-forward).
+  // The pace anchors are authored for 1802–2017; rescale to the actual data range.
+  const paceRaw = (t.pace ?? [[0, minYear], [1, maxYear]]) as [number, number][];
+  const py0 = paceRaw[0][1];
+  const py1 = paceRaw[paceRaw.length - 1][1];
+  const pace: [number, number][] = paceRaw.map(([p, y]) => [
+    p,
+    minYear + ((y - py0) / (py1 - py0)) * (maxYear - minYear),
+  ]);
+  function yearAt(p: number): number {
+    if (p <= 0) return minYear;
+    if (p >= 1) return maxYear;
+    for (let i = 1; i < pace.length; i++) {
+      if (p <= pace[i][0]) {
+        const [pa, ya] = pace[i - 1];
+        const [pb, yb] = pace[i];
+        return ya + ((p - pa) / (pb - pa)) * (yb - ya);
+      }
+    }
+    return maxYear;
+  }
+  function progressAt(y: number): number {
+    if (y <= minYear) return 0;
+    if (y >= maxYear) return 1;
+    for (let i = 1; i < pace.length; i++) {
+      if (y <= pace[i][1]) {
+        const [pa, ya] = pace[i - 1];
+        const [pb, yb] = pace[i];
+        return pa + ((y - ya) / (yb - ya)) * (pb - pa);
+      }
+    }
+    return 1;
+  }
+  let progress = progressAt(year); // master playback position; year is derived while playing
 
   // "N creeks still on the map" counts distinct connected creek NETWORKS (per-feature
   // component ids from the pipeline), not raw line segments — a network is on the map at Y
@@ -112,19 +156,26 @@ export async function createTimeline(map: MLMap): Promise<TimelineController> {
     return Math.pow(Math.max(0, Math.min(1, tt)), s.easeExp);
   }
 
-  // PART 2 — annexation fade-in: each parcel ramps 0→1 over `fadeYears` once Y passes the
-  // year that parcel was annexed, so the city footprint sweeps outward district by district.
-  function annexExpr(y: number, base: number): ExpressionSpecification {
+  // PART 2 — annexation. The persistent layers draw the CUMULATIVE footprint: each per-year
+  // footprint fades in over `fadeYears` at its `year` and fades out exactly while its
+  // successor fades in (ramp(Y−year) − ramp(Y−next_year)), so at any Y the outer city limit
+  // reads as one shape and interior borders never show.
+  function annexCumExpr(y: number, base: number): ExpressionSpecification {
     const w = CONFIG.annexation.fadeYears;
+    const ramp = (from: unknown): ExpressionSpecification =>
+      ["max", 0, ["min", 1, ["/", ["-", y, from], w]]] as ExpressionSpecification;
+    return ["*", base, ["max", 0, ["-", ramp(["get", "year"]), ramp(["get", "next_year"])]]] as ExpressionSpecification;
+  }
+
+  // …and the newly joined parcel flashes once: a warm pulse peaking at its annexation year,
+  // decaying over pulse.years (the join event stays legible without a lasting interior line).
+  function annexPulseExpr(y: number): ExpressionSpecification {
+    const p = CONFIG.annexation.pulse;
     return [
-      "*",
-      base,
-      [
-        "case",
-        ["<", ["-", y, ["get", "year"]], 0], 0,
-        [">", ["-", y, ["get", "year"]], w], 1,
-        ["/", ["-", y, ["get", "year"]], w],
-      ],
+      "case",
+      ["<", ["-", y, ["get", "year"]], 0], 0,
+      [">", ["-", y, ["get", "year"]], p.years], 0,
+      ["*", p.maxOpacity, ["-", 1, ["/", ["-", y, ["get", "year"]], p.years]]],
     ] as ExpressionSpecification;
   }
 
@@ -142,11 +193,13 @@ export async function createTimeline(map: MLMap): Promise<TimelineController> {
     for (const { id, base } of SURVIVOR_LAYERS) {
       if (map.getLayer(id)) map.setPaintProperty(id, "line-opacity", base * sf);
     }
-    // annexation footprint — parcels fade in as the year passes each annexation
+    // annexation — the cumulative city limit crossfades outward; new parcels flash on join
     if (CONFIG.annexation.show) {
       for (const { id, prop, base } of ANNEX_LAYERS) {
-        if (map.getLayer(id)) map.setPaintProperty(id, prop, annexExpr(y, base));
+        if (map.getLayer(id)) map.setPaintProperty(id, prop, annexCumExpr(y, base));
       }
+      if (map.getLayer(ANNEX_PULSE_ID))
+        map.setPaintProperty(ANNEX_PULSE_ID, "line-opacity", annexPulseExpr(y));
     }
     // the city grows in as the creeks die
     const g = CONFIG.cityGrowth;
@@ -170,17 +223,21 @@ export async function createTimeline(map: MLMap): Promise<TimelineController> {
       if (holdUntil != null) {
         // dwelling in place — either the end-of-timeline hold (loop back) or a beat dwell
         if (now >= holdUntil) {
-          if (holdThenLoop) year = minYear;
+          if (holdThenLoop) {
+            year = minYear;
+            progress = 0;
+          }
           holdUntil = null;
           holdThenLoop = false;
         }
       } else {
-        year += (maxYear - minYear) * (dt / t.autoplayDurationMs);
-        if (year >= maxYear) {
-          year = maxYear;
-          holdUntil = now + END_HOLD_MS;
+        progress += dt / t.autoplayDurationMs;
+        if (progress >= 1) {
+          progress = 1;
+          holdUntil = now + (t.endHoldMs ?? END_HOLD_MS);
           holdThenLoop = true;
         }
+        year = yearAt(progress);
       }
     }
     if (year !== lastApplied) {
@@ -218,6 +275,7 @@ export async function createTimeline(map: MLMap): Promise<TimelineController> {
       holdUntil = null;
       holdThenLoop = false;
       year = Math.max(minYear, Math.min(maxYear, y));
+      progress = progressAt(year); // keep autoplay resuming from the scrubbed year
     },
     // Dwell in place for `ms` without changing the play/pause state (a narrative-beat pause).
     // Only takes effect while playing and not already holding, so it never stacks or fights

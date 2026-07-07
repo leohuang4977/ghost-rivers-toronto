@@ -92,6 +92,25 @@ export async function createPopulation(timeline: TimelineController, mount: HTML
     wrap.appendChild(s.svg);
   }
 
+  // unit-dot grid — one dot per `unit` people, lighting up as the population climbs (the
+  // partial last dot fades in fractionally, so the fill motion is continuous)
+  const maxPop = Math.max(...series.map((s) => s.pop));
+  let dots: HTMLElement[] = [];
+  if (cfg.dots.show) {
+    const grid = document.createElement("div");
+    grid.className = "gr-pop-dots";
+    grid.style.setProperty("--pop-cols", String(cfg.dots.cols));
+    const n = Math.ceil(maxPop / cfg.dots.unit);
+    for (let i = 0; i < n; i++) {
+      const d = document.createElement("span");
+      d.className = "gr-pop-dot";
+      grid.appendChild(d);
+      dots.push(d);
+    }
+    grid.title = `Each dot ≈ ${cfg.dots.unit.toLocaleString("en-US")} people`;
+    wrap.appendChild(grid);
+  }
+
   const num = document.createElement("div");
   num.className = "gr-pop-num";
   const label = document.createElement("div");
@@ -116,7 +135,10 @@ export async function createPopulation(timeline: TimelineController, mount: HTML
   const srcHTML = data.sources
     .map((s) => `<a href="${s.url}" target="_blank" rel="noopener">${s.title}</a>`)
     .join(" · ");
-  card.innerHTML = `<b>${data.entity}</b><span>${data.note}</span><div class="gr-pop-src">${srcHTML}</div>`;
+  const dotNote = cfg.dots.show
+    ? `<span class="gr-pop-dotnote">Each dot ≈ ${cfg.dots.unit.toLocaleString("en-US")} people.</span>`
+    : "";
+  card.innerHTML = `<b>${data.entity}</b><span>${data.note}</span>${dotNote}<div class="gr-pop-src">${srcHTML}</div>`;
   document.body.appendChild(card);
   info.addEventListener("click", (e) => {
     e.stopPropagation();
@@ -134,6 +156,7 @@ export async function createPopulation(timeline: TimelineController, mount: HTML
   const spanY = Math.max(1, last.year - first.year);
   const maxP = Math.max(...series.map((s) => s.pop));
 
+  let lastFull = -1;
   timeline.onUpdate((year) => {
     const p = at(year);
     num.textContent = fmt(p);
@@ -142,6 +165,20 @@ export async function createPopulation(timeline: TimelineController, mount: HTML
       const yc = Math.max(first.year, Math.min(last.year, year));
       head.setAttribute("cx", (((yc - first.year) / spanY) * 100).toFixed(1));
       head.setAttribute("cy", (100 - (at(yc) / maxP) * 100).toFixed(1));
+    }
+    if (dots.length) {
+      const filled = p / cfg.dots.unit;
+      const full = Math.floor(filled);
+      if (full !== lastFull) {
+        // reset classes + any stale partial opacity (runs only when a dot fills/empties)
+        for (let i = 0; i < dots.length; i++) {
+          dots[i].classList.toggle("is-on", i < full);
+          dots[i].style.opacity = "";
+        }
+        lastFull = full;
+      }
+      // the in-progress dot brightens continuously with the fraction
+      if (full < dots.length) dots[full].style.opacity = String(0.15 + 0.85 * (filled - full));
     }
   });
 }

@@ -118,7 +118,8 @@ export const CONFIG = {
   // survived." A separate set of layers, driven by the timeline, filtered on the survivor
   // year. It should only read near the end — ease-in, invisible for most of the animation.
   survivor: {
-    fadeInFromYear: 1980, // warm glow starts appearing after this year …
+    fadeInFromYear: 1955, // warm glow starts appearing after this year — right after the
+    // pace curve's 1950 knee, so the bloom fills the whole fast final sweep …
     fullByYear: 2017, // … reaching full strength at the end
     easeExp: 2.6, // >1 = ease-in: stays hidden, blooms only in the final years
     halo: { color: "#ffcf8f", width: 21, blur: 18, opacity: 0.55 }, // warm amber bloom
@@ -208,25 +209,31 @@ export const CONFIG = {
   // the data file's `note` and shown behind the ⓘ. Interpolated linearly between census points.
   population: {
     show: true,
-    sparkline: true, // a tiny growth-curve next to the number
+    // Unit-dot grid: people POUR IN visibly — one warm dot per `unit` residents lights up as
+    // Y climbs (a filling grid reads viscerally where a ticking number doesn't).
+    dots: { show: true, unit: 25000, cols: 9 },
+    sparkline: false, // the old tiny growth-curve (superseded by the dots; kept as an option)
     dataUrl: "data/population.json",
     color: "#d8c193", // warm parchment — the growing city, a counterpoint to the cyan water
     sparkColor: "#b9a678",
   },
 
-  // ANNEXATION BOUNDARIES (Part 2) — the REAL "city grows": former municipalities light up
-  // their boundary as Y passes the year Toronto annexed them, so the footprint sweeps outward
-  // over the dying creeks. A GeoJSON of curated, DOCUMENTED annexations (data file), each a
-  // polygon with a `year`; the timeline fades each in over `fadeYears`. Drawn UNDER the creek
-  // glow so the creeks stay hero. Boundaries are approximate (see the About/ⓘ note).
+  // ANNEXATION BOUNDARIES (Part 2) — the REAL "city grows": the city limit sweeps outward as
+  // Y passes each annexation year. The persistent line/fill is the CUMULATIVE footprint (the
+  // union of everything annexed so far, precomputed per year by the pipeline), so interior
+  // borders dissolve the moment a district joins — the line always reads as the entirety of
+  // Toronto, never a patchwork of boxes. Consecutive footprints crossfade over `fadeYears`,
+  // and the newly joined parcel gets a brief warm PULSE so the join event stays legible.
+  // Drawn UNDER the creek glow. Boundaries are approximate (see the About/ⓘ note).
   annexation: {
     show: true,
-    dataUrl: "data/annexations.geojson",
-    fadeYears: 3, // a district fades in over this many years once Y passes its annexation year
-    line: { color: "#d9ad61", width: 1.3, opacity: 0.7 }, // warm glowing city-limit line
+    dataUrl: "data/annexations.geojson", // per-parcel (join pulse + hover metadata)
+    cumDataUrl: "data/annexations_cum.geojson", // cumulative outer footprint per year
+    fadeYears: 3, // crossfade between consecutive footprints over this many years
+    line: { color: "#d9ad61", width: 1.3, opacity: 0.7 }, // warm city-limit line (outer only)
     glow: { color: "#e6c079", width: 6, blur: 4, opacity: 0.2 }, // soft glow under the line
     fill: { color: "#5a4720", opacity: 0.1 }, // faint warm interior tint (0 to disable)
-    label: { color: "#cbb184", size: 10.5, opacity: 0.7 }, // former-municipality name
+    pulse: { color: "#ffe2a8", width: 2.4, blur: 2, maxOpacity: 0.85, years: 5 }, // join flash
   },
 
   // INTRO SEQUENCE — fullscreen open: start at the headwaters end with the whole network
@@ -254,5 +261,19 @@ export const CONFIG = {
     fadeWindowYears: 2.5, // a creek fades out over this many years after its last-mapped year
     endYear: 2017, // present day (loop end); creeks dated 2017 survive to here
     autoplay: true, // on by default (also respects prefers-reduced-motion)
+    endHoldMs: 2400, // linger on the survivors before looping back
+    // VARIABLE PACE — autoplay allocates screen time by how much is happening, so the
+    // eventless decades fast-forward instead of dragging. Piecewise-linear (progress →
+    // year) anchors, derived from the burial distribution: 65% of burials fall 1850–1950,
+    // and NOTHING is buried after 1949 — so that 67-year tail gets ~10% of the run (a
+    // quick sweep into the survivor finale) instead of a third of it. Scrubbing stays
+    // linear in year; this only shapes autoplay.
+    pace: [
+      [0.0, 1802],
+      [0.16, 1850],
+      [0.56, 1900],
+      [0.9, 1950],
+      [1.0, 2017],
+    ] as [number, number][],
   },
 };

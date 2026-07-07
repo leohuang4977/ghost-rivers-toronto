@@ -126,14 +126,16 @@ export const SURVIVOR_LAYERS: { id: string; base: number }[] = [
 
 export const STREET_LABEL_ID = "street-labels";
 
-// Annexation layers + the timeline-driven property/base for each. The timeline fades each in
-// per-feature as the year passes its `year` (the real "city grows"). ids also used for toggle.
+// Annexation layers + the timeline-driven property/base for each. The persistent fill/glow/
+// line draw the CUMULATIVE footprint (source `annex_cum` — outer city limit only; interior
+// borders dissolve on join); the transient pulse draws the newly joined parcel (`annex`).
 export const ANNEX_LAYERS: { id: string; prop: "fill-opacity" | "line-opacity"; base: number }[] = [
   { id: "annex-fill", prop: "fill-opacity", base: CONFIG.annexation.fill.opacity },
   { id: "annex-glow", prop: "line-opacity", base: CONFIG.annexation.glow.opacity },
   { id: "annex-line", prop: "line-opacity", base: CONFIG.annexation.line.opacity },
 ];
-export const ANNEX_LAYER_IDS = ANNEX_LAYERS.map((l) => l.id);
+export const ANNEX_PULSE_ID = "annex-pulse";
+export const ANNEX_LAYER_IDS = [...ANNEX_LAYERS.map((l) => l.id), ANNEX_PULSE_ID];
 
 // All creek layer ids (for the layer-toggle panel), incl. flare + survivor + the hover target.
 export const CREEK_LAYER_IDS = [
@@ -157,6 +159,7 @@ export function buildStyle(): StyleSpecification {
       creeks: { type: "vector", url: pmtiles("data/creeks.pmtiles") },
       city: { type: "vector", url: pmtiles("data/city.pmtiles") },
       annex: { type: "geojson", data: assetUrl(CONFIG.annexation.dataUrl) },
+      annex_cum: { type: "geojson", data: assetUrl(CONFIG.annexation.cumDataUrl) },
     },
     layers: [
       { id: "background", type: "background", paint: { "background-color": CONFIG.darkBaseColor } },
@@ -215,12 +218,13 @@ export function buildStyle(): StyleSpecification {
           "text-opacity": CONFIG.streetLabels.opacity,
         },
       },
-      // annexation footprint — the real "city grows": former municipalities fade in as the
-      // year passes their annexation (timeline-driven opacity). UNDER the creek glow.
+      // annexation footprint — the real "city grows": the CUMULATIVE outer city limit fades
+      // between per-year footprints (interior borders dissolve on join), while the newly
+      // joined parcel flashes a brief warm pulse. All timeline-driven, UNDER the creek glow.
       {
         id: "annex-fill",
         type: "fill",
-        source: "annex",
+        source: "annex_cum",
         paint: {
           "fill-color": CONFIG.annexation.fill.color,
           "fill-opacity": 0,
@@ -230,7 +234,7 @@ export function buildStyle(): StyleSpecification {
       {
         id: "annex-glow",
         type: "line",
-        source: "annex",
+        source: "annex_cum",
         layout: { "line-cap": "round", "line-join": "round" },
         paint: {
           "line-color": CONFIG.annexation.glow.color,
@@ -242,11 +246,23 @@ export function buildStyle(): StyleSpecification {
       {
         id: "annex-line",
         type: "line",
-        source: "annex",
+        source: "annex_cum",
         layout: { "line-cap": "round", "line-join": "round" },
         paint: {
           "line-color": CONFIG.annexation.line.color,
           "line-width": CONFIG.annexation.line.width,
+          "line-opacity": 0,
+        },
+      },
+      {
+        id: ANNEX_PULSE_ID,
+        type: "line",
+        source: "annex",
+        layout: { "line-cap": "round", "line-join": "round" },
+        paint: {
+          "line-color": CONFIG.annexation.pulse.color,
+          "line-width": CONFIG.annexation.pulse.width,
+          "line-blur": CONFIG.annexation.pulse.blur,
           "line-opacity": 0,
         },
       },

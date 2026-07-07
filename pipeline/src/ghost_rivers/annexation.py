@@ -82,6 +82,37 @@ def main() -> None:
         print(f"[annex] dropped {len(dropped_year)} parcels with no numeric year: {dropped_year}")
     print(f"\n[✓] wrote {dst}")
 
+    # ── cumulative footprint per year — the OUTER city limit ────────────────────
+    # The site draws the city limit from these, not the raw parcels, so interior borders
+    # between already-annexed districts dissolve: once an area joins Toronto, the line shows
+    # the entirety of the city, not a patchwork of boxes. One feature per distinct year =
+    # the union of everything annexed so far; `next_year` lets the site crossfade between
+    # consecutive footprints as the timeline passes each annexation.
+    from shapely.ops import unary_union
+
+    gm = g.to_crs(dtm_crs)  # union in true metres, then a tiny buffer heals parcel seams
+    cum_feats = []
+    footprint = None
+    for yr in yrs:
+        step = unary_union(gm.loc[gm["year"] <= yr, "geometry"].values)
+        step = step.buffer(12).buffer(-12)  # close hairline gaps between adjacent parcels
+        footprint = step if footprint is None else unary_union([footprint, step])
+        cum_feats.append({"year": int(yr), "geometry": footprint})
+    cum = gpd.GeoDataFrame(cum_feats, crs=dtm_crs).to_crs("EPSG:4326")
+    cum["next_year"] = cum["year"].shift(-1).fillna(9999).astype(int)
+    cum_out = json.loads(cum[["year", "next_year", "geometry"]].to_json())
+    cum_out["note"] = out["note"]
+    dst_cum = os.path.join(pub, "annexations_cum.geojson")
+    with open(dst_cum, "w", encoding="utf-8") as fh:
+        json.dump(cum_out, fh)
+    holes = sum(
+        len(p.interiors) for f in cum.geometry
+        for p in (f.geoms if f.geom_type == "MultiPolygon" else [f])
+    )
+    print(f"[annex] cumulative footprints: {len(cum)} steps ({yrs[0]}-{yrs[-1]}), "
+          f"{holes} interior holes across all steps")
+    print(f"[✓] wrote {dst_cum}")
+
 
 if __name__ == "__main__":
     main()

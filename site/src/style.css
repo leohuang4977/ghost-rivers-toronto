@@ -265,6 +265,30 @@ body {
   align-items: flex-end;
   line-height: 1.05;
 }
+/* unit-dot grid — one dot ≈ N people, lighting up as the population climbs */
+.gr-pop-dots {
+  display: grid;
+  grid-template-columns: repeat(var(--pop-cols, 9), 6px);
+  gap: 3px;
+  align-self: center;
+}
+.gr-pop-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--pop, #d8c193);
+  opacity: 0.15;
+}
+.gr-pop-dot.is-on {
+  opacity: 1;
+  box-shadow: 0 0 4px rgba(216, 193, 147, 0.55);
+}
+.gr-pop-dotnote {
+  display: block;
+  margin-top: 5px;
+  font-size: 10.5px;
+  color: var(--ink-dim);
+}
 .gr-pop-num {
   font-size: 15px;
   font-weight: 600;
