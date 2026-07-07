@@ -9,10 +9,10 @@ plan is in `lost-rivers-toronto-project-plan.md`. Data and licensing detail is i
 ## What this is
 
 A static, no-maintenance, portfolio-grade interactive map of Toronto's buried creeks
-(Garrison, Taddle, Mud Creek). It scrolls: the street grid grows over time and the glowing
-creeks disappear, keyed to the year each was last drawn on a map. Built to be shown to
-potential employers. The whole site is static files with no runtime dependencies, so once
-it's built there is nothing to maintain.
+(Garrison, Taddle, and the downtown network). As a timeline plays, the street grid grows in
+over time and the glowing creeks disappear one by one, keyed to the year each was last drawn
+on a map. Built to be shown to potential employers. The whole site is static files with no
+runtime dependencies, so once it's built there is nothing to maintain.
 
 ## Repo layout
 
@@ -29,54 +29,137 @@ it's built there is nothing to maintain.
 - Front end is **MapLibre GL JS**, not Mapbox, so there is no vendor token to expire. The
   basemap is a self-contained **Protomaps PMTiles** file.
 - Toolchain is **WSL2 + pixi** (conda-forge) for GDAL and tippecanoe. `pmtiles` also runs
-  natively on Windows and lives in `pipeline/bin/`.
+  natively on Windows in `pipeline/bin/`. The pixi env is redirected to a detached location
+  (`detached-environments` → `$HOME/.pixi-envs/ghost-rivers`) because the repo lives on the
+  Windows C: mount, where `/mnt/c` can't set the Linux file permissions pixi needs.
 - Deploy is a static bundle. `site/vite.config.ts` sets `base: './'` so `dist/` runs at a
   domain root or at any subpath of the personal GitHub site with no config change. Target
-  host is GitHub Pages (Cloudflare Pages / Netlify are drop-in alternatives).
+  host is GitHub Pages (Cloudflare Pages / Netlify are drop-in alternatives). NOT deployed yet.
 - The repo must stay **outside** any Google Drive-synced folder. Drive sync corrupts git.
 
 ## Data (full detail in `docs/DATA_SOURCES.md`)
 
-Core geometry and the timeline come from two open Borealis datasets (no login required):
+All source data is downloaded and staged. Core geometry and the timeline come from two open
+Borealis datasets (no login required):
 
 - Historical Hydrography — DOI `10.5683/SP2/IYS0K9` → `pipeline/data/raw/hydrography_uoft/`
-- Disappearing Rivers, which carries the "year last seen" timeline attribute —
+- Disappearing Rivers, which carries the year-last-seen attribute —
   DOI `10.5683/SP2/2AHETH` → `pipeline/data/raw/disappearing_rivers/`
 
-The hillshade comes from the **open** Ontario GeoHub lidar DTM, not the U of T login-gated
-copy → `pipeline/data/raw/lidar_dtm/`. Historical map rasters are optional polish and mostly
-need georeferencing; treat them as post-money-shot work.
+Hillshade source: Ontario GeoHub lidar DTM, package **GTA2023-DTM-05** (the one package
+covering the downtown creek corridor), 0.5 m, EPSG:2958 → `pipeline/data/raw/lidar_dtm/`.
 
-CRS is inconsistent across sources. Read every `.prj` and reproject deliberately. Never
-assume the projection.
+City context (City of Toronto Open Data, downloaded) →
+`pipeline/data/raw/city_open_data/`: Centreline (streets), Green Spaces, Ravine bylaw,
+Neighbourhoods.
+
+Historical map rasters are still optional polish (mostly need georeferencing); not used yet.
+
+CRS is inconsistent across sources and some names lie (e.g. `CL_WGS84_hydro_WAMS` is actually
+EPSG:3857, not WGS84). Read every `.prj` / `ogrinfo` and reproject deliberately. Never assume.
 
 ## Licensing (full detail in `docs/LICENSING.md`)
 
 Cleared for this use. The data authors (Marcel Fortin / U of T Map & Data Library and the
 Lost Rivers project) granted written email permission for **non-commercial use with
-attribution**. Keep the site non-monetized and cite every source in the About panel. City of
-Toronto Archives raster items are not public domain by age, so clear or skip them.
+attribution**. Keep the site non-monetized and cite every source (already in the on-map
+attribution line and to go in the About panel). City of Toronto Archives raster items are not
+public domain by age, so clear or skip them.
 
-## Current state
+## Study area
 
-- Phase 0 is complete and committed on `main`. Scaffold, docs, and the data-folder skeleton
-  are done.
-- The blank dark map runs: `cd site && npm run dev` → http://localhost:5173.
-- Open blocker: the WSL2 toolchain is not installed yet (needs admin elevation and a reboot).
-  `pipeline/scripts/setup_wsl_toolchain.sh` finishes the install and prints gdal, tippecanoe,
-  and pmtiles versions when it succeeds.
+Downtown v1 only — the Garrison + Taddle corridor. Study bbox WGS84
+`[-79.458, 43.625, -79.352, 43.706]` (≈8.3 × 8.8 km). All tiling is clipped to this.
 
-## Next: Phase 1
+## Key data facts (carry forward, don't rediscover)
 
-Clean the hydrography geometry, join the "year last seen" attribute, build the hillshade from
-the lidar DTM, and tile everything to PMTiles. Work one phase per session.
+- Creek year field is **`lastNTS`** ("year last seen on a map"; `0` = unknown). Built from
+  the geodatabase layer `BI_Lost_Rivers` (95% of downtown creeks dated, 1802–2017) rather
+  than the published shapefile (only 15% dated). It's a config switch if ever revisited.
+- Vector tiles carry `year_last_seen` + `has_year` (integers) and a `hero` flag (16 Garrison
+  segments, selected by connected component from the Crawford St bridge seed).
+- 9 creek segments are dated 2017 (still-visible / daylighted — the survivors). 11 segments
+  are undated (`has_year=0`, kept and rendered neutral, not "disappeared").
+- DTM tiles are a compound 3D CRS (UTM 17N + CGVD2013 height); force plain 2D EPSG:2958 when
+  mosaicking. Nodata is inconsistent across tiles (some -3.4e38, some +3.4e38) — set nodata
+  explicitly per source or the +sentinel poisons the mosaic. The lake is derived from DTM
+  nodata (lidar returns nothing over water), so the water edge matches the hillshade edge.
 
-The first real go/no-go is the **Phase 2 money shot**: a single still image of a glowing
-creek over a dark, hillshaded downtown. Make that beautiful before building any scroll logic.
+## Build artifacts (staged in `site/public/data/`)
+
+- `creeks.pmtiles` — MVT vectors, z10–16, layer `creeks`, fields `year_last_seen`+`has_year`+`hero`.
+- `hillshade.pmtiles` — PNG raster (gray+alpha, transparent past the DTM/lake edge).
+- `city.pmtiles` — multi-layer: `streets` (Centreline road classes), `parks`, `ravines`,
+  `water`, plus `street_labels` (arterials, for the Phase 4 symbol layer).
+- `labels.geojson`, `creeks_meta.json` — curated landmark labels and the per-feature year list.
+- Self-hosted glyph PBFs under `site/public/fonts/` (Noto Sans, SIL OFL) for MapLibre labels.
+
+## The pipeline
+
+Config-driven (`pipeline/config.yaml`), runs via pixi tasks. `pixi run all` builds
+everything (creeks + hillshade + city → tiles), steps cache on inputs/outputs. Modules:
+`clean_creeks.py` (geometry + year join + `creeks_meta.json`), `hillshade.py`,
+`city_layers.py`, `tile.py`. Run order documented in `pipeline/README.md`.
+
+## The site
+
+Vite + TS. Key files: `src/config.ts` (ALL tuning knobs live here), `src/style.ts` (MapLibre
+style + layer stack), `src/timeline.ts` (the animation/year engine), `src/labels.ts`,
+`src/ui.ts` (timeline bar, layers panel, legend, title), `src/main.ts` (map + dark-styled
+controls + wiring), `src/style.css`. Run: `cd site && npm run dev` → http://localhost:5173
+(hard-reload with Ctrl+Shift+R after re-tiling).
+
+## Current state — DONE and committed on `main`
+
+- **Phase 0** — scaffold, docs, toolchain (WSL2 + pixi, GDAL/tippecanoe/pmtiles all live).
+- **Phase 1** — data pipeline: cleaned creek geometry, joined `lastNTS`, built the hillshade
+  from the DTM, tiled to PMTiles.
+- **Phase 2 / 2.5 / 2.6** — the "money shot" and the layered cinematic scene: dark moody
+  hillshade, glowing hero creek (Garrison brighter/wider with a hot core, other creeks
+  dimmer), vignette, and the city context layers (streets, parks, ravines, derived lake).
+- **Phase 3** — the interactive piece: a year timeline with autoplay + loop, a draggable
+  scrub slider (grabbing pauses autoplay), play/pause + spacebar, a big live year readout, a
+  "N creeks still on the map" counter, creek fade-out keyed to `lastNTS` (smooth fade over a
+  ~2.5 yr window), dark-styled nav controls (zoom + compass + reset-view) and scale bar, a
+  collapsible layer-toggle panel + legend, a quiet title/intro, hover tooltips on creeks, and
+  curated landmark + Lake Ontario labels. Respects `prefers-reduced-motion`.
+- **Phase 4 Tier 1** — city grows as creeks die (street-grid opacity ramps up with the
+  timeline year `Y`), burial flares (a brief bright pulse the moment each creek's year passes,
+  then fade to dark), and real self-hosted-glyph street labels for major arterials (a symbol
+  layer off the Centreline `street_labels`, wired into the layer toggle panel).
+
+Main config knobs (all in `site/src/config.ts`): timeline (`autoplayDurationMs`,
+`fadeWindowYears`, `endYear`), city-growth curve, flare duration/intensity, `streetLabels`
+(size/minzoom), creek hero/rest/undated styles, hillshade/city opacities, framing. Terrain
+shape dials (smoothing, z_factor) are in `pipeline/config.yaml`.
+
+## Next: Phase 4 Tier 2, then Tier 3
+
+- **Tier 2** — (1) NARRATIVE BEATS: 2–3 curated, factual story moments that surface at their
+  year (e.g. Crawford St bridge buried under Trinity Bellwoods; Taddle Creek's pond under Hart
+  House / U of T). Keep captions short and verifiable; if unsure of a date/detail, keep it
+  general rather than inventing. (2) SURVIVOR GLOW: give the 2017/daylighted creeks a
+  distinct warmer/whiter glow that reads near the end of the timeline, so the ending lands as
+  "these few survived."
+- **Tier 3 (polish)** — flowing-water motion in the creek glow; a burial-rate sparkline under
+  the year (the wave clusters ~1880s–1930s); era shortcut buttons (1850/1900/1950/today);
+  click-to-focus a creek (extend the hover tooltip).
+
+Then, whenever ready: **deploy to GitHub Pages** (the architecture is built for it, not yet
+done) and a quick **mobile-layout pass**.
+
+## Working notes
+
+- Work one phase/tier per session; commit at each clean boundary, then `/clear` and start
+  fresh (this file reloads automatically and carries the state forward).
+- Do NOT screenshot the MapLibre canvas headlessly — it renders black when the browser tab is
+  backgrounded. Leo captures reference images himself from his foreground browser.
+- The `[project]` → `[workspace]` rename in `pixi.toml` was done; the deprecation warning is
+  gone. The retained ~3.3 GB DTM source zip in `lidar_dtm/` can be deleted to reclaim space.
 
 ## Commands
 
 - Run the site: `cd site && npm run dev`
 - Build the site: `cd site && npm run build` (emits `site/dist/`)
-- Finish the toolchain, inside WSL:
-  `cd /mnt/c/Users/leo/toronto_ghost_river/pipeline && bash scripts/setup_wsl_toolchain.sh`
+- Rebuild all tiles (inside WSL):
+  `cd /mnt/c/Users/leo/toronto_ghost_river/pipeline && pixi run all`
